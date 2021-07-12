@@ -1,3 +1,6 @@
+mod data;
+use data::vec3::Vec3;
+
 fn main() {
     const IMAGE_WIDTH: i32 = 256;
     const IMAGE_HEIGHT: i32 = 256;
@@ -17,7 +20,10 @@ fn main() {
             let ig = 255.999 * g;
             let ib = 255.999 * b;
 
-            println!("{} {} {}", ir as i32, ig as i32, ib as i32);
+            let mut color: Vec3 = Vec3::new(ir, ig, ib);
+            color.colorize();
+
+            println!("{} {} {}", color.r(), color.g(), color.b());
         }
     }
 
