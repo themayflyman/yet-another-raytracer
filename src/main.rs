@@ -4,14 +4,23 @@ use data::vec3::Vec3;
 
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
-    let a: f64 = r.direction().dot(&r.direction());
-    let b: f64 = 2.0 * oc.dot(&r.direction());
-    let c: f64 = oc.dot(&oc) - radius * radius;
-    let discriminant: f64 = b * b - 4.0 * a * c;
+    // let a: f64 = r.direction().dot(&r.direction());
+    // let b: f64 = 2.0 * oc.dot(&r.direction());
+    // let c: f64 = oc.dot(&oc) - radius * radius;
+    // let discriminant: f64 = b * b - 4.0 * a * c;
+    // return if discriminant < 0.0 {
+    //     -1.0
+    // } else {
+    //     (-b - discriminant.sqrt()) / (2.0 * a)
+    // };
+    let a: f64 = r.direction().length_squared();
+    let half_b: f64 = oc.dot(&r.direction());
+    let c: f64 = oc.length_squared() - radius * radius;
+    let discriminant: f64 = half_b * half_b - a * c;
     return if discriminant < 0.0 {
         -1.0
     } else {
-        (-b - discriminant.sqrt()) / (2.0 * a)
+        (-half_b - discriminant.sqrt()) / a
     };
 }
 
