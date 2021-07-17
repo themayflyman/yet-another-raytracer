@@ -2,8 +2,20 @@ mod data;
 use data::ray::Ray;
 use data::vec3::Vec3;
 
+fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> bool {
+    let oc: Vec3 = r.origin() - *center;
+    let a: f64 = r.direction().dot(&r.direction());
+    let b: f64 = 2.0 * oc.dot(&r.direction());
+    let c: f64 = oc.dot(&oc) - radius * radius;
+    let discriminant: f64 = b * b - 4.0 * a * c;
+    discriminant > 0.0
+}
+
 // Linear interpolation
 fn lerp(r: &Ray) -> Vec3 {
+    if hit_sphere(&Vec3::new(0.0, 0.0, -1.0), 0.5, r) {
+        return Vec3::new(1.0, 0.0, 0.0);
+    }
     let unit_direction: Vec3 = r.direction().unit_vector();
     let t: f64 = 0.5 * (unit_direction.y() + 1.0);
     (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
