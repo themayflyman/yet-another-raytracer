@@ -1,5 +1,5 @@
 use std::cmp::PartialEq;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -39,9 +39,9 @@ impl Vec3 {
 }
 
 impl Add for Vec3 {
-    type Output = Vec3;
+    type Output = Self;
 
-    fn add(self, other: Vec3) -> Vec3 {
+    fn add(self, other: Vec3) -> Self::Output {
         Vec3 {
             elements: [
                 self.x() + other.x(),
@@ -53,9 +53,9 @@ impl Add for Vec3 {
 }
 
 impl Sub for Vec3 {
-    type Output = Vec3;
+    type Output = Self;
 
-    fn sub(self, other: Vec3) -> Vec3 {
+    fn sub(self, other: Vec3) -> Self::Output {
         Vec3 {
             elements: [
                 self.x() - other.x(),
@@ -67,9 +67,9 @@ impl Sub for Vec3 {
 }
 
 impl Mul<Vec3> for Vec3 {
-    type Output = Vec3;
+    type Output = Self;
 
-    fn mul(self, other: Vec3) -> Vec3 {
+    fn mul(self, other: Vec3) -> Self::Output {
         Vec3 {
             elements: [
                 self.x() * other.x(),
@@ -81,9 +81,9 @@ impl Mul<Vec3> for Vec3 {
 }
 
 impl Mul<f64> for Vec3 {
-    type Output = Vec3;
+    type Output = Self;
 
-    fn mul(self, other: f64) -> Vec3 {
+    fn mul(self, other: f64) -> Self::Output {
         Vec3 {
             elements: [self.x() * other, self.y() * other, self.z() * other],
         }
@@ -93,7 +93,7 @@ impl Mul<f64> for Vec3 {
 impl Mul<Vec3> for f64 {
     type Output = Vec3;
 
-    fn mul(self, other: Vec3) -> Vec3 {
+    fn mul(self, other: Vec3) -> Self::Output {
         Vec3 {
             elements: [self * other.x(), self * other.y(), self * other.z()],
         }
@@ -101,9 +101,9 @@ impl Mul<Vec3> for f64 {
 }
 
 impl Div<f64> for Vec3 {
-    type Output = Vec3;
+    type Output = Self;
 
-    fn div(self, other: f64) -> Vec3 {
+    fn div(self, other: f64) -> Self::Output {
         if other == 0.0 {
             return Vec3 {
                 elements: [f64::MAX, f64::MAX, f64::MAX],
@@ -111,6 +111,16 @@ impl Div<f64> for Vec3 {
         }
         Vec3 {
             elements: [self.x() / other, self.y() / other, self.z() / other],
+        }
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Vec3 {
+            elements: [-self.x(), -self.y(), -self.z()],
         }
     }
 }
