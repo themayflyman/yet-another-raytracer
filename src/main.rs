@@ -1,10 +1,25 @@
-mod data;
-mod objs;
+extern crate rand;
+
+use rand::Rng;
 
 use data::ray::Ray;
 use data::vec3::Vec3;
+use objs::camera::Camera;
 use objs::hittable::{HitRecord, Hittable, HittableList};
 use objs::sphere::Sphere;
+
+mod data;
+mod objs;
+
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    if x < min {
+        return min;
+    }
+    if x > max {
+        return max;
+    }
+    x
+}
 
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -52,6 +67,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
+    const SAMPLES_PER_PIXEL: i32 = 100;
 
     // World
     let mut world: HittableList = HittableList::new();
@@ -59,15 +75,16 @@ fn main() {
     world.add_sphere(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0));
 
     // Camera
-    const VIEWPORT_HEIGHT: f64 = 2.0;
-    const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
-    const FOCAL_LENGTH: f64 = 1.0;
-
-    let origin: Vec3 = Vec3::new(0.0, 0.0, 0.0);
-    let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0.0, 0.0);
-    let vertical: Vec3 = Vec3::new(0.0, VIEWPORT_HEIGHT, 0.0);
-    let lower_left_corner: Vec3 =
-        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, FOCAL_LENGTH);
+    let camera: Camera = Camera::new();
+    // const VIEWPORT_HEIGHT: f64 = 2.0;
+    // const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
+    // const FOCAL_LENGTH: f64 = 1.0;
+    //
+    // let origin: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+    // let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0.0, 0.0);
+    // let vertical: Vec3 = Vec3::new(0.0, VIEWPORT_HEIGHT, 0.0);
+    // let lower_left_corner: Vec3 =
+    //     origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, FOCAL_LENGTH);
 
     // Render
     println!("P3");
@@ -77,30 +94,22 @@ fn main() {
     for j in (0..IMAGE_HEIGHT).rev() {
         eprintln!("Scanlines remaining: {}", j);
         for i in 0..IMAGE_WIDTH {
-            // let r: f64 = i as f64 / (IMAGE_WIDTH - 1) as f64;
-            // let g: f64 = j as f64 / (IMAGE_HEIGHT - 1) as f64;
-            // let b = 0.25;
-            //
-            // let ir  = 255.999 * r;
-            // let ig = 255.999 * g;
-            // let ib = 255.999 * b;
-            //
-            // let mut color: Vec3 = Vec3::new(ir, ig, ib);
-            // color.colorize();
+            let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
+            for _s in 0..SAMPLES_PER_PIXEL {
+                let mut rng = rand::thread_rng();
 
-            // println!("{} {} {}", color.r(), color.g(), color.b());
-            let u: f64 = i as f64 / (IMAGE_WIDTH - 1) as f64;
-            let v: f64 = j as f64 / (IMAGE_HEIGHT - 1) as f64;
-            let r: Ray = Ray::new(
-                origin,
-                lower_left_corner + u * horizontal + v * vertical - origin,
-            );
-            let pixel_color: Vec3 = lerp(&r, &world);
+                let u: f64 = (i as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH - 1) as f64;
+                let v: f64 = (j as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
+                let r: Ray = camera.get_ray(u, v);
+                pixel_color = pixel_color + lerp(&r, &world);
+            }
+
+            let scale: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
             println!(
                 "{} {} {}",
-                (pixel_color.r() * 255.999) as u32,
-                (pixel_color.g() * 255.999) as u32,
-                (pixel_color.b() * 255.999) as u32
+                ((256 as f64 * clamp(pixel_color.r() * scale, 0.0, 0.999)) as i32),
+                ((256 as f64 * clamp(pixel_color.g() * scale, 0.0, 0.999)) as i32),
+                ((256 as f64 * clamp(pixel_color.b() * scale, 0.0, 0.999)) as i32),
             );
         }
     }
