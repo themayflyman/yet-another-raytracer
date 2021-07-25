@@ -32,15 +32,16 @@ impl Hittable for Sphere {
         if discriminant < 0.0 { return false; }
 
         // Find the nearest root that lies in the acceptable range.
-        let mut t: f64 = (0.0 - half_b - discriminant.sqrt()) / (2.0 * a);
+        let mut t: f64 = (0.0 - half_b - discriminant.sqrt()) / a;
         if t < t_min || t_max < t {
-            t = (0.0 - half_b + discriminant.sqrt()) / (2.0 * a);
+            t = (0.0 - half_b + discriminant.sqrt()) / a;
             if t < t_min || t_max < t { return false; }
         }
 
         rec.t = t;
         rec.p = ray.at(t);
-        rec.normal = (rec.p - self.center()) / self.radius();
+        let outward_normal: Vec3 = (rec.p - self.center()) / self.radius();
+        rec.set_face_normal(ray, outward_normal);
         true
     }
 }
