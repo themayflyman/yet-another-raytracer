@@ -1,6 +1,8 @@
 use crate::data::ray::Ray;
 use crate::data::vec3::Vec3;
 use super::sphere::Sphere;
+use crate::material::Material;
+use crate::material::Lambertian;
 
 pub trait Hittable {
     fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rc: &mut HitRecord) -> bool;
@@ -11,6 +13,7 @@ pub struct HitRecord {
     pub p: Vec3,
     pub normal: Vec3,
     pub front_face: bool,
+    pub material: Box<dyn Material>
 }
 
 impl HitRecord {
@@ -19,7 +22,8 @@ impl HitRecord {
             t: 0.0,
             p: Vec3::new(0.0, 0.0, 0.0),
             normal: Vec3::new(0.0, 0.0, 0.0),
-            front_face: false
+            front_face: false,
+            material: Box::new(Lambertian::new(Vec3::new(0.0, 0.0, 0.0))),
         }
     }
 
@@ -65,6 +69,7 @@ impl Hittable for HittableList {
                 rec.t = temp_rec.t;
                 rec.p = temp_rec.p;
                 rec.normal = temp_rec.normal;
+                rec.material = sphere.material.clone();
             }
         }
         hit_anything

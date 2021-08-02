@@ -7,9 +7,12 @@ use data::vec3::Vec3;
 use objs::camera::Camera;
 use objs::hittable::{HitRecord, Hittable, HittableList};
 use objs::sphere::Sphere;
+use material::Lambertian;
+use material::Metal;
 
 mod data;
 mod objs;
+mod material;
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
@@ -23,15 +26,6 @@ fn clamp(x: f64, min: f64, max: f64) -> f64 {
 
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
-    // let a: f64 = r.direction().dot(&r.direction());
-    // let b: f64 = 2.0 * oc.dot(&r.direction());
-    // let c: f64 = oc.dot(&oc) - radius * radius;
-    // let discriminant: f64 = b * b - 4.0 * a * c;
-    // return if discriminant < 0.0 {
-    //     -1.0
-    // } else {
-    //     (-b - discriminant.sqrt()) / (2.0 * a)
-    // };
     let a: f64 = r.direction().length_squared();
     let half_b: f64 = oc.dot(&r.direction());
     let c: f64 = oc.length_squared() - radius * radius;
@@ -40,39 +34,6 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
         -1.0
     } else {
         (-half_b - discriminant.sqrt()) / a
-    };
-}
-
-fn random_in_unit_sphere() -> Vec3 {
-    const MAX: f64 = 1.0;
-    const MIN: f64 = -1.0;
-    let mut rng = rand::thread_rng();
-
-    loop {
-        let p: Vec3 = Vec3::new(
-            rng.gen_range::<f64>(MIN, MAX),
-            rng.gen_range::<f64>(MIN, MAX),
-            rng.gen_range::<f64>(MIN, MAX),
-        );
-        if p.length_squared() >= 1.0 {
-            continue;
-        }
-        return p;
-    }
-    // let mut p: Vec3 = Vec3::new(2.0, 2.0, 2.0);
-    // let mut rng = rand::thread_rng();
-    // while p.length_squared() >= 1.0 {
-    //     p = 2.0 * Vec3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - Vec3::new(1.0, 1.0, 1.0);
-    // }
-    // p
-}
-
-fn random_in_hemisphere(normal: Vec3) -> Vec3 {
-    let in_unit_sphere: Vec3 = random_in_unit_sphere();
-    return if in_unit_sphere.dot(&normal) > 0.0 {
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
     };
 }
 
@@ -85,8 +46,12 @@ fn lerp(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     }
 
     if world.intersect(r, 0.001, f64::INFINITY, &mut rec) {
-        let target: Vec3 = rec.p + rec.normal + random_in_unit_sphere().unit_vector();
-        return 0.5 * lerp(&Ray::new(rec.p, target - rec.p), world, depth-1);
+        let scattered = rec.material.scatter(r, &rec);
+        if let Some(scattered_ray) = scattered.ray {
+            return scattered.color * lerp(&scattered_ray, world, depth-1);
+        } else {
+            return Vec3::new(0.0, 0.0, 0.0);
+        }
     }
 
     let unit_direction: Vec3 = r.direction().unit_vector();
@@ -104,8 +69,16 @@ fn main() {
 
     // World
     let mut world: HittableList = HittableList::new();
-    world.add_sphere(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5));
-    world.add_sphere(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0));
+
+    let material_ground = Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
+    let material_center = Box::new(Lambertian::new(Vec3::new(0.7, 0.3, 0.3)));
+    let material_left = Box::new(Metal::new(Vec3::new(0.8, 0.8, 0.8)));
+    let material_right = Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2)));
+
+    world.add_sphere(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
+    world.add_sphere(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add_sphere(Sphere::new(Vec3::new(-1.0, -0.0, -1.0), 0.5, material_left));
+    world.add_sphere(Sphere::new(Vec3::new(1.0, -0.0, -1.0), 0.5, material_right));
 
     // Camera
     let camera: Camera = Camera::new();

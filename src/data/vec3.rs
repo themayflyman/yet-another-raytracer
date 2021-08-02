@@ -169,4 +169,8 @@ impl Vec3 {
         self.elements[1] = self.elements[1].floor();
         self.elements[2] = self.elements[2].floor();
     }
+
+    pub fn near_zero(&self) -> bool {
+        return self.elements[0] as i32 == 0 && self.elements[1] as i32 == 0 && self.elements[2] as i32 == 0
+     }
 }
