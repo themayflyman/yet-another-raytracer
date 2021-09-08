@@ -10,7 +10,8 @@ pub struct Scatter {
     pub ray: Option<Ray>
 }
 
-trait MaterialClone {
+// A workaround to implement Clone for Box
+pub trait MaterialClone {
     fn clone_material<'a>(&self) -> Box<dyn Material>;
 }
 
@@ -57,11 +58,12 @@ impl Material for Lambertian {
 #[derive(Clone)]
 pub struct Metal {
     albedo: Vec3,
+    fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Vec3) -> Metal {
-        return Metal { albedo }
+    pub fn new(albedo: Vec3, fuzz: f64) -> Metal {
+        return Metal { albedo, fuzz }
     }
 }
 
@@ -72,7 +74,7 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 impl Material for Metal {
     fn scatter (&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
         let reflected = reflect(_r_in.direction().unit_vector(), rec.normal);
-        let scattered = Ray::new(rec.p, reflected);
+        let scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
 
         Scatter {
             color: self.albedo,
