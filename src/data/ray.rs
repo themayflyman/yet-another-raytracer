@@ -2,7 +2,7 @@ use super::vec3::Vec3;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ray {
-    origin: Vec3, // the ray origin
+    origin: Vec3,    // the ray origin
     direction: Vec3, // the ray direction
 }
 

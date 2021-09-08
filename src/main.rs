@@ -4,15 +4,14 @@ use rand::Rng;
 
 use data::ray::Ray;
 use data::vec3::Vec3;
+use material::{Dielectric, Lambertian, Metal};
 use objs::camera::Camera;
 use objs::hittable::{HitRecord, Hittable, HittableList};
 use objs::sphere::Sphere;
-use material::Lambertian;
-use material::Metal;
 
 mod data;
-mod objs;
 mod material;
+mod objs;
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
@@ -48,7 +47,7 @@ fn lerp(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     if world.intersect(r, 0.001, f64::INFINITY, &mut rec) {
         let scattered = rec.material.scatter(r, &rec);
         if let Some(scattered_ray) = scattered.ray {
-            return scattered.color * lerp(&scattered_ray, world, depth-1);
+            return scattered.color * lerp(&scattered_ray, world, depth - 1);
         } else {
             return Vec3::new(0.0, 0.0, 0.0);
         }
@@ -71,13 +70,27 @@ fn main() {
     let mut world: HittableList = HittableList::new();
 
     let material_ground = Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
-    let material_center = Box::new(Lambertian::new(Vec3::new(0.7, 0.3, 0.3)));
-    let material_left = Box::new(Metal::new(Vec3::new(0.8, 0.8, 0.8), 0.3));
-    let material_right = Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 1.0));
+    let material_center = Box::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
+    let material_left_inner = Box::new(Dielectric::new(1.5));
+    let material_left_outer = Box::new(Dielectric::new(1.5));
+    let material_right = Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
 
+    world.add_sphere(Sphere::new(
+        Vec3::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    ));
     world.add_sphere(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
-    world.add_sphere(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0, material_ground));
-    world.add_sphere(Sphere::new(Vec3::new(-1.0, -0.0, -1.0), 0.5, material_left));
+    world.add_sphere(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left_inner,
+    ));
+    world.add_sphere(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        -0.4,
+        material_left_outer,
+    ));
     world.add_sphere(Sphere::new(Vec3::new(1.0, -0.0, -1.0), 0.5, material_right));
 
     // Camera
@@ -89,7 +102,9 @@ fn main() {
     println!("255");
 
     for j in (0..IMAGE_HEIGHT).rev() {
-        eprintln!("Scanlines remaining: {}", j);
+        if j % 50 == 0 {
+            eprintln!("Scanlines remaining: {}", j);
+        }
         for i in 0..IMAGE_WIDTH {
             let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
             for _s in 0..SAMPLES_PER_PIXEL {
