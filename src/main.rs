@@ -93,13 +93,20 @@ fn main() {
     ));
     world.add_sphere(Sphere::new(Vec3::new(1.0, -0.0, -1.0), 0.5, material_right));
 
+    let lookfrom: Vec3 = Vec3::new(3.0, 3.0, 2.0);
+    let lookat: Vec3 = Vec3::new(0.0, 0.0, -1.0);
+    let vup: Vec3 = Vec3::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (lookfrom - lookat).length();
+    let aperture = 2.0;
     // Camera
     let camera: Camera = Camera::new(
-        Vec3::new(-2.0, 2.0, 1.0),
-        Vec3::new(0.0, 0.0, -1.0),
-        Vec3::new(0.0, 1.0, 0.0),
+        lookfrom,
+        lookat,
+        vup,
         20.0,
         ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
     );
 
     // Render
