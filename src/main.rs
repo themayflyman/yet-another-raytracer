@@ -94,7 +94,13 @@ fn main() {
     world.add_sphere(Sphere::new(Vec3::new(1.0, -0.0, -1.0), 0.5, material_right));
 
     // Camera
-    let camera: Camera = Camera::new();
+    let camera: Camera = Camera::new(
+        Vec3::new(-2.0, 2.0, 1.0),
+        Vec3::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        20.0,
+        ASPECT_RATIO,
+    );
 
     // Render
     println!("P3");

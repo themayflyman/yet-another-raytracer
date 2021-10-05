@@ -12,10 +12,6 @@ pub struct Camera {
     horizontal: Vec3,
     vertical: Vec3,
     origin: Vec3,
-    // lens_radius: f64,
-    // u: Vec3,
-    // v: Vec3,
-    // w: Vec3,
 }
 
 fn random_in_unit_disk() -> Vec3 {
@@ -28,46 +24,26 @@ fn random_in_unit_disk() -> Vec3 {
     p
 }
 
+fn degrees_to_radians(degrees: f64) -> f64 {
+    return degrees * PI / 180.0;
+}
+
 impl Camera {
-    // pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect: f64, aperture: f64, focus_dist: f64) -> Camera {
-    pub fn new() -> Camera {
-        // let lens_radius: f64 = aperture / 2.0;
-        //
-        // let theta: f64 = vfov * PI / 100.0;
-        // let half_height: f64 = (theta / 2.0).tan();
-        // let half_width: f64 = aspect * half_height;
-        //
-        // let origin: Vec3 = lookfrom;
-        //
-        // let w: Vec3 = (lookfrom - lookat).unit_vector();
-        // let u: Vec3 = vup.cross(&w).unit_vector();
-        // let v: Vec3 = w.cross(&u);
-        //
-        // let lower_left_corner: Vec3 = origin - half_height * focus_dist * u - half_height * focus_dist * v - focus_dist * w;
-        // let horizontal: Vec3 = 2.0 * half_width * focus_dist * u;
-        // let vertical: Vec3 = 2.0 * half_height * focus_dist * v;
-        //
-        // Camera {
-        //     lower_left_corner,
-        //     horizontal,
-        //     vertical,
-        //     origin,
-        //     lens_radius,
-        //     u,
-        //     v,
-        //     w,
-        // }
-
-        const ASPECT_RATIO: f64 = 16.0 / 9.0;
-        const VIEWPORT_HEIGHT: f64 = 2.0;
-        const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
+    pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64) -> Camera {
         const FOCAL_LENGTH: f64 = 1.0;
+        let theta: f64 = degrees_to_radians(vfov);
+        let h: f64 = f64::tan(theta / 2.0);
+        let viewport_height: f64 = 2.0 * h;
+        let viewport_width: f64 = aspect_ratio * viewport_height;
 
-        let origin: Vec3 = Vec3::new(0.0, 0.0, 0.0);
-        let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0.0, 0.0);
-        let vertical: Vec3 = Vec3::new(0.0, VIEWPORT_HEIGHT, 0.0);
-        let lower_left_corner: Vec3 =
-            origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, FOCAL_LENGTH);
+        let w: Vec3 = (lookfrom - lookat).unit_vector();
+        let u: Vec3 = vup.cross(&w).unit_vector();
+        let v: Vec3 = w.cross(&u);
+
+        let origin: Vec3 = lookfrom;
+        let horizontal: Vec3 = viewport_width * u;
+        let vertical: Vec3 = viewport_height * v;
+        let lower_left_corner: Vec3 = origin - horizontal / 2.0 - vertical / 2.0 - w;
 
         Camera {
             lower_left_corner,
@@ -77,19 +53,10 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, u: f64, v: f64) -> Ray {
+    pub fn get_ray(&self, s: f64, t: f64) -> Ray {
         Ray::new(
             self.origin,
-            self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
+            self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin,
         )
     }
-
-    // pub fn get_ray(&self, u: f64, v: f64) -> Ray {
-    //     let rd: Vec3 = self.lens_radius * random_in_unit_disk();
-    //     let offset: Vec3 = self.u * rd.x() + self.v() * rd.y();
-    //     Ray::new(
-    //         self.origin + offset,
-    //         self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin - offset
-    //     )
-    // }
 }
