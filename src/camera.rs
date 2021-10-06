@@ -4,8 +4,8 @@ use std::f64::consts::PI;
 
 use rand::Rng;
 
-use crate::data::ray::Ray;
-use crate::data::vec3::Vec3;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 pub struct Camera {
     lower_left_corner: Vec3,
@@ -16,6 +16,8 @@ pub struct Camera {
     v: Vec3,
     w: Vec3,
     lens_radius: f64,
+    time0: f64,
+    time1: f64,
 }
 
 fn random_in_unit_disk() -> Vec3 {
@@ -45,6 +47,8 @@ impl Camera {
         aspect_ratio: f64,
         aperture: f64,
         focus_dist: f64,
+        time0: f64,
+        time1: f64,
     ) -> Camera {
         let theta: f64 = degrees_to_radians(vfov);
         let h: f64 = f64::tan(theta / 2.0);
@@ -71,16 +75,21 @@ impl Camera {
             v,
             w,
             lens_radius,
+            time0,
+            time1,
         }
     }
 
     pub fn get_ray(&self, s: f64, t: f64) -> Ray {
+        let mut rng = rand::thread_rng();
+
         let rd: Vec3 = self.lens_radius * random_in_unit_disk();
         let offset: Vec3 = self.u * rd.x() + self.v * rd.y();
 
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
+            rng.gen_range::<f64>(self.time0, self.time1),
         )
     }
 }

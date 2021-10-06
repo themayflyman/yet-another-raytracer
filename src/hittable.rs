@@ -1,11 +1,12 @@
-use super::sphere::Sphere;
-use crate::data::ray::Ray;
-use crate::data::vec3::Vec3;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 use crate::material::Lambertian;
 use crate::material::Material;
 
 pub trait Hittable {
     fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rc: &mut HitRecord) -> bool;
+
+    fn material(&self) -> Box<dyn Material>;
 }
 
 pub struct HitRecord {
@@ -29,28 +30,26 @@ impl HitRecord {
 }
 
 pub struct HittableList {
-    spheres: Vec<Sphere>,
+    spheres: Vec<Box<dyn Hittable>>,
 }
 
 impl HittableList {
     pub fn new() -> HittableList {
-        let sphere_list: Vec<Sphere> = Vec::new();
+        let sphere_list: Vec<Box<dyn Hittable>> = Vec::new();
         HittableList {
             spheres: sphere_list,
         }
     }
 
-    pub fn add_sphere(&mut self, sphere: Sphere) {
+    pub fn add_sphere(&mut self, sphere: Box<dyn Hittable>) {
         self.spheres.push(sphere);
     }
 
     pub fn size(&self) -> usize {
         self.spheres.len()
     }
-}
 
-impl Hittable for HittableList {
-    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    pub fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let mut temp_rec: HitRecord = HitRecord::new();
         let mut hit_anything: bool = false;
         let mut closet_so_far: f64 = t_max;
@@ -63,7 +62,7 @@ impl Hittable for HittableList {
                 rec.p = temp_rec.p;
                 rec.front_face = temp_rec.front_face;
                 rec.normal = temp_rec.normal;
-                rec.material = sphere.material.clone();
+                rec.material = sphere.material();
             }
         }
         hit_anything

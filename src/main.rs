@@ -2,16 +2,19 @@ extern crate rand;
 
 use rand::Rng;
 
-use data::ray::Ray;
-use data::vec3::Vec3;
-use material::{Dielectric, Lambertian, Metal, Material};
-use objs::camera::Camera;
-use objs::hittable::{HitRecord, Hittable, HittableList};
-use objs::sphere::Sphere;
+use ray::Ray;
+use vec3::Vec3;
+use material::{Dielectric, Lambertian, Material, Metal};
+use camera::Camera;
+use hittable::{HitRecord, HittableList};
+use sphere::{MovingSphere, StillSphere};
 
-mod data;
+mod ray;
 mod material;
-mod objs;
+mod vec3;
+mod camera;
+mod hittable;
+mod sphere;
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
@@ -62,53 +65,89 @@ fn random_scene() -> HittableList {
     let mut world: HittableList = HittableList::new();
 
     let group_material = Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
-    world.add_sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, group_material));
+    world.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        group_material,
+    )));
 
     for a in -11..11 {
         for b in -11..11 {
             let mut rng = rand::thread_rng();
             let choose_mat: f64 = rng.gen::<f64>();
-            let center: Vec3 = Vec3::new(a as f64 + 0.9 * rng.gen::<f64>(), 0.2, b as f64 + 0.9 * rng.gen::<f64>());
+            let center: Vec3 = Vec3::new(
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            );
 
             if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
                 let sphere_material: Box<dyn Material>;
 
                 if choose_mat < 0.8 {
-                    let albedo: Vec3 = Vec3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0));
+                    let albedo: Vec3 = Vec3::new(
+                        rng.gen_range(-1.0, 1.0),
+                        rng.gen_range(-1.0, 1.0),
+                        rng.gen_range(-1.0, 1.0),
+                    );
                     sphere_material = Box::new(Lambertian::new(albedo));
-                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                    let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
+                    world.add_sphere(Box::new(MovingSphere::new(
+                        center,
+                        center2,
+                        0.0,
+                        1.0,
+                        0.2,
+                        sphere_material,
+                    )));
                 } else if choose_mat < 0.95 {
-                    let albedo: Vec3 = Vec3::new(rng.gen_range(0.5, 1.0), rng.gen_range(0.5, 1.0), rng.gen_range(0.5, 1.0));
+                    let albedo: Vec3 = Vec3::new(
+                        rng.gen_range(0.5, 1.0),
+                        rng.gen_range(0.5, 1.0),
+                        rng.gen_range(0.5, 1.0),
+                    );
                     let fuzz: f64 = rng.gen_range(0.0, 0.5);
                     sphere_material = Box::new(Metal::new(albedo, fuzz));
-                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                    world.add_sphere(Box::new(StillSphere::new(center, 0.2, sphere_material)));
                 } else {
                     sphere_material = Box::new(Dielectric::new(1.5));
-                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                    world.add_sphere(Box::new(StillSphere::new(center, 0.2, sphere_material)));
                 }
             }
         }
     }
 
     let material1 = Box::new(Dielectric::new(1.5));
-    world.add_sphere(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, material1));
+    world.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, 1.0, 0.0),
+        1.0,
+        material1,
+    )));
 
     let material2 = Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
-    world.add_sphere(Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 0.0, material2));
+    world.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(-4.0, 1.0, 0.0),
+        1.0,
+        material2,
+    )));
 
     let material3 = Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
-    world.add_sphere(Sphere::new(Vec3::new(4.0, 1.0, 0.0), 0.0, material3));
+    world.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(4.0, 1.0, 0.0),
+        1.0,
+        material3,
+    )));
 
     return world;
 }
 
 fn main() {
     // Image
-    const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_WIDTH: usize = 1200;
+    const ASPECT_RATIO: f64 = 16.0 / 9.0;
+    const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-    const SAMPLES_PER_PIXEL: usize = 500;
-    const MAX_DEPTH: usize = 25;
+    const SAMPLES_PER_PIXEL: usize = 100;
+    const MAX_DEPTH: usize = 50;
 
     // World
     let world: HittableList = random_scene();
@@ -127,6 +166,8 @@ fn main() {
         ASPECT_RATIO,
         aperture,
         dist_to_focus,
+        0.0,
+        1.0,
     );
 
     // Render

@@ -1,8 +1,8 @@
 use rand::{random, Rng};
 
-use crate::data::ray::Ray;
-use crate::data::vec3::Vec3;
-use crate::objs::hittable::HitRecord;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
+use crate::hittable::HitRecord;
 
 #[derive(Clone, Debug)]
 pub struct Scatter {
@@ -50,7 +50,7 @@ impl Material for Lambertian {
         let target = rec.p + rec.normal + random_in_unit_sphere();
         Scatter {
             color: self.albedo,
-            ray: Some(Ray::new(rec.p, target - rec.p)),
+            ray: Some(Ray::new(rec.p, target - rec.p, _r_in.time())),
         }
     }
 }
@@ -74,7 +74,11 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 impl Material for Metal {
     fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
         let reflected = reflect(_r_in.direction().unit_vector(), rec.normal);
-        let scattered = Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere());
+        let scattered = Ray::new(
+            rec.p,
+            reflected + self.fuzz * random_in_unit_sphere(),
+            _r_in.time(),
+        );
 
         Scatter {
             color: self.albedo,
@@ -130,7 +134,11 @@ impl Material for Dielectric {
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
             return Scatter {
                 color: Vec3::new(1.0, 1.0, 1.0),
-                ray: Some(Ray::new(rec.p, reflect(unit_direction, rec.normal))),
+                ray: Some(Ray::new(
+                    rec.p,
+                    reflect(unit_direction, rec.normal),
+                    _r_in.time(),
+                )),
             };
         } else {
             return Scatter {
@@ -138,6 +146,7 @@ impl Material for Dielectric {
                 ray: Some(Ray::new(
                     rec.p,
                     refract(unit_direction, rec.normal, refraction_ratio),
+                    _r_in.time(),
                 )),
             };
         }
