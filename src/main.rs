@@ -4,7 +4,7 @@ use rand::Rng;
 
 use data::ray::Ray;
 use data::vec3::Vec3;
-use material::{Dielectric, Lambertian, Metal};
+use material::{Dielectric, Lambertian, Metal, Material};
 use objs::camera::Camera;
 use objs::hittable::{HitRecord, Hittable, HittableList};
 use objs::sphere::Sphere;
@@ -37,7 +37,7 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
 }
 
 // Linear interpolation
-fn lerp(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
+fn lerp(r: &Ray, world: &HittableList, depth: usize) -> Vec3 {
     let mut rec: HitRecord = HitRecord::new();
 
     if depth <= 0 {
@@ -58,46 +58,66 @@ fn lerp(r: &Ray, world: &HittableList, depth: i32) -> Vec3 {
     (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
 }
 
-fn main() {
-    // Image
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: i32 = 400;
-    const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
-    const MAX_DEPTH: i32 = 25;
-
-    // World
+fn random_scene() -> HittableList {
     let mut world: HittableList = HittableList::new();
 
-    let material_ground = Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
-    let material_center = Box::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
-    let material_left_inner = Box::new(Dielectric::new(1.5));
-    let material_left_outer = Box::new(Dielectric::new(1.5));
-    let material_right = Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
+    let group_material = Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
+    world.add_sphere(Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, group_material));
 
-    world.add_sphere(Sphere::new(
-        Vec3::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    ));
-    world.add_sphere(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
-    world.add_sphere(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left_inner,
-    ));
-    world.add_sphere(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        -0.4,
-        material_left_outer,
-    ));
-    world.add_sphere(Sphere::new(Vec3::new(1.0, -0.0, -1.0), 0.5, material_right));
+    for a in -11..11 {
+        for b in -11..11 {
+            let mut rng = rand::thread_rng();
+            let choose_mat: f64 = rng.gen::<f64>();
+            let center: Vec3 = Vec3::new(a as f64 + 0.9 * rng.gen::<f64>(), 0.2, b as f64 + 0.9 * rng.gen::<f64>());
 
-    let lookfrom: Vec3 = Vec3::new(3.0, 3.0, 2.0);
-    let lookat: Vec3 = Vec3::new(0.0, 0.0, -1.0);
+            if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                let sphere_material: Box<dyn Material>;
+
+                if choose_mat < 0.8 {
+                    let albedo: Vec3 = Vec3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0));
+                    sphere_material = Box::new(Lambertian::new(albedo));
+                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                } else if choose_mat < 0.95 {
+                    let albedo: Vec3 = Vec3::new(rng.gen_range(0.5, 1.0), rng.gen_range(0.5, 1.0), rng.gen_range(0.5, 1.0));
+                    let fuzz: f64 = rng.gen_range(0.0, 0.5);
+                    sphere_material = Box::new(Metal::new(albedo, fuzz));
+                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                } else {
+                    sphere_material = Box::new(Dielectric::new(1.5));
+                    world.add_sphere(Sphere::new(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    let material1 = Box::new(Dielectric::new(1.5));
+    world.add_sphere(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, material1));
+
+    let material2 = Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
+    world.add_sphere(Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 0.0, material2));
+
+    let material3 = Box::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
+    world.add_sphere(Sphere::new(Vec3::new(4.0, 1.0, 0.0), 0.0, material3));
+
+    return world;
+}
+
+fn main() {
+    // Image
+    const ASPECT_RATIO: f64 = 3.0 / 2.0;
+    const IMAGE_WIDTH: usize = 1200;
+    const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
+    const SAMPLES_PER_PIXEL: usize = 500;
+    const MAX_DEPTH: usize = 25;
+
+    // World
+    let world: HittableList = random_scene();
+
+    let lookfrom: Vec3 = Vec3::new(13.0, 2.0, 3.0);
+    let lookat: Vec3 = Vec3::new(0.0, 0.0, 0.0);
     let vup: Vec3 = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = (lookfrom - lookat).length();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     // Camera
     let camera: Camera = Camera::new(
         lookfrom,
@@ -115,9 +135,7 @@ fn main() {
     println!("255");
 
     for j in (0..IMAGE_HEIGHT).rev() {
-        if j % 50 == 0 {
-            eprintln!("Scanlines remaining: {}", j);
-        }
+        eprintln!("Scanlines remaining: {}", j);
         for i in 0..IMAGE_WIDTH {
             let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
             for _s in 0..SAMPLES_PER_PIXEL {

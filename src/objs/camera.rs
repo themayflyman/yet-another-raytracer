@@ -22,7 +22,11 @@ fn random_in_unit_disk() -> Vec3 {
     let mut rng = rand::thread_rng();
     let mut p: Vec3;
     while {
-        p = Vec3::new(rng.gen_range::<f64>(-1.0, 1.0), rng.gen_range::<f64>(-1.0, 1.0), 0.0);
+        p = Vec3::new(
+            rng.gen_range::<f64>(-1.0, 1.0),
+            rng.gen_range::<f64>(-1.0, 1.0),
+            0.0,
+        );
         p.length_squared() >= 1.0
     } {}
     p
@@ -33,7 +37,15 @@ fn degrees_to_radians(degrees: f64) -> f64 {
 }
 
 impl Camera {
-    pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64) -> Camera {
+    pub fn new(
+        lookfrom: Vec3,
+        lookat: Vec3,
+        vup: Vec3,
+        vfov: f64,
+        aspect_ratio: f64,
+        aperture: f64,
+        focus_dist: f64,
+    ) -> Camera {
         let theta: f64 = degrees_to_radians(vfov);
         let h: f64 = f64::tan(theta / 2.0);
         let viewport_height: f64 = 2.0 * h;
