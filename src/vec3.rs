@@ -1,7 +1,7 @@
 use std::cmp::PartialEq;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Vec3 {
     pub elements: [f64; 3],
 }

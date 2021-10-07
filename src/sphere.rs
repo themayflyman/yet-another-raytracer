@@ -1,12 +1,14 @@
+use crate::aabb::{surrounding_box, AABB};
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::material::Material;
 
 use super::hittable::{HitRecord, Hittable};
 
+#[derive(Clone)]
 pub struct StillSphere {
-    center: Vec3,
-    radius: f64,
+    pub center: Vec3,
+    pub radius: f64,
     pub material: Box<dyn Material>,
 }
 
@@ -29,7 +31,7 @@ impl StillSphere {
 }
 
 impl Hittable for StillSphere {
-    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vec3 = ray.origin() - self.center();
         let a: f64 = ray.direction().length_squared();
         let half_b: f64 = oc.dot(&ray.direction());
@@ -37,7 +39,7 @@ impl Hittable for StillSphere {
 
         let discriminant: f64 = half_b * half_b - a * c;
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         // Find the nearest root that lies in the acceptable range.
@@ -45,29 +47,40 @@ impl Hittable for StillSphere {
         if t < t_min || t_max < t {
             t = (0.0 - half_b + discriminant.sqrt()) / a;
             if t < t_min || t_max < t {
-                return false;
+                return None;
             }
         }
 
-        rec.t = t;
-        rec.p = ray.at(t);
-        rec.material = self.material.clone();
-        let outward_normal: Vec3 = (rec.p - self.center()) / self.radius();
+        let p: Vec3 = ray.at(t);
+        let outward_normal: Vec3 = (p - self.center()) / self.radius();
+        let normal: Vec3;
+        let front_face: bool;
         if ray.direction().dot(&outward_normal) < 0.0 {
-            rec.normal = outward_normal;
-            rec.front_face = true;
+            normal = outward_normal;
+            front_face = true;
         } else {
-            rec.normal = -outward_normal;
-            rec.front_face = false;
+            normal = -outward_normal;
+            front_face = false;
         }
-        true
+
+        Some(HitRecord::new(
+            t,
+            p,
+            normal,
+            front_face,
+            self.material.clone(),
+        ))
     }
 
-    fn material(&self) -> Box<dyn Material> {
-        self.material.clone()
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+        return Some(AABB::new(
+            self.center - Vec3::new(self.radius, self.radius, self.radius),
+            self.center + Vec3::new(self.radius, self.radius, self.radius),
+        ));
     }
 }
 
+#[derive(Clone)]
 pub struct MovingSphere {
     center0: Vec3,
     center1: Vec3,
@@ -103,7 +116,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere {
-    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vec3 = ray.origin() - self.center(ray.time());
         let a: f64 = ray.direction().length_squared();
         let half_b: f64 = oc.dot(&ray.direction());
@@ -111,7 +124,7 @@ impl Hittable for MovingSphere {
 
         let discriminant: f64 = half_b * half_b - a * c;
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         // Find the nearest root that lies in the acceptable range.
@@ -119,25 +132,40 @@ impl Hittable for MovingSphere {
         if t < t_min || t_max < t {
             t = (0.0 - half_b + discriminant.sqrt()) / a;
             if t < t_min || t_max < t {
-                return false;
+                return None;
             }
         }
 
-        rec.t = t;
-        rec.p = ray.at(t);
-        rec.material = self.material.clone();
-        let outward_normal: Vec3 = (rec.p - self.center(ray.time())) / self.radius;
+        let p: Vec3 = ray.at(t);
+        let outward_normal: Vec3 = (p - self.center(ray.time())) / self.radius;
+        let normal: Vec3;
+        let front_face: bool;
         if ray.direction().dot(&outward_normal) < 0.0 {
-            rec.normal = outward_normal;
-            rec.front_face = true;
+            normal = outward_normal;
+            front_face = true;
         } else {
-            rec.normal = -outward_normal;
-            rec.front_face = false;
+            normal = -outward_normal;
+            front_face = false;
         }
-        true
+
+        Some(HitRecord::new(
+            t,
+            p,
+            normal,
+            front_face,
+            self.material.clone(),
+        ))
     }
 
-    fn material(&self) -> Box<dyn Material> {
-        self.material.clone()
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        let box0: AABB = AABB::new(
+            self.center(time0) - Vec3::new(self.radius, self.radius, self.radius),
+            self.center(time0) + Vec3::new(self.radius, self.radius, self.radius),
+        );
+        let box1: AABB = AABB::new(
+            self.center(time1) - Vec3::new(self.radius, self.radius, self.radius),
+            self.center(time1) + Vec3::new(self.radius, self.radius, self.radius),
+        );
+        return Some(surrounding_box(box0, box1));
     }
 }

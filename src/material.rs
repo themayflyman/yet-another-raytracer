@@ -1,8 +1,8 @@
 use rand::{random, Rng};
 
+use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use crate::hittable::HitRecord;
 
 #[derive(Clone, Debug)]
 pub struct Scatter {

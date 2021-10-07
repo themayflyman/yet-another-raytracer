@@ -2,19 +2,21 @@ extern crate rand;
 
 use rand::Rng;
 
-use ray::Ray;
-use vec3::Vec3;
-use material::{Dielectric, Lambertian, Material, Metal};
 use camera::Camera;
-use hittable::{HitRecord, HittableList};
+use hittable::{Hittable, HittableList};
+use material::{Dielectric, Lambertian, Material, Metal};
+use ray::Ray;
 use sphere::{MovingSphere, StillSphere};
+use vec3::Vec3;
 
-mod ray;
-mod material;
-mod vec3;
+mod aabb;
+mod bvh;
 mod camera;
 mod hittable;
+mod material;
+mod ray;
 mod sphere;
+mod vec3;
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
@@ -41,13 +43,11 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
 
 // Linear interpolation
 fn lerp(r: &Ray, world: &HittableList, depth: usize) -> Vec3 {
-    let mut rec: HitRecord = HitRecord::new();
-
     if depth <= 0 {
         return Vec3::new(0.0, 0.0, 0.0);
     }
 
-    if world.intersect(r, 0.001, f64::INFINITY, &mut rec) {
+    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
         let scattered = rec.material.scatter(r, &rec);
         if let Some(scattered_ray) = scattered.ray {
             return scattered.color * lerp(&scattered_ray, world, depth - 1);
