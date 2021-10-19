@@ -30,6 +30,8 @@ impl Clone for Box<dyn Hittable> {
 
 
 pub struct HitRecord {
+    pub u: f64,
+    pub v: f64,
     pub t: f64,
     pub p: Vec3,
     pub normal: Vec3,
@@ -39,6 +41,8 @@ pub struct HitRecord {
 
 impl HitRecord {
     pub fn new(
+        u: f64,
+        v: f64,
         t: f64,
         p: Vec3,
         normal: Vec3,
@@ -46,6 +50,8 @@ impl HitRecord {
         material: Box<dyn Material>,
     ) -> HitRecord {
         HitRecord {
+            u,
+            v,
             t,
             p,
             normal,

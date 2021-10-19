@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::aabb::{surrounding_box, AABB};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -62,8 +64,11 @@ impl Hittable for StillSphere {
             normal = -outward_normal;
             front_face = false;
         }
+        let (u, v) = get_sphere_uv(outward_normal);
 
         Some(HitRecord::new(
+            u,
+            v,
             t,
             p,
             normal,
@@ -147,8 +152,11 @@ impl Hittable for MovingSphere {
             normal = -outward_normal;
             front_face = false;
         }
+        let (u, v) = get_sphere_uv(outward_normal);
 
         Some(HitRecord::new(
+            u,
+            v,
             t,
             p,
             normal,
@@ -168,4 +176,13 @@ impl Hittable for MovingSphere {
         );
         return Some(surrounding_box(box0, box1));
     }
+}
+
+pub fn get_sphere_uv(p: Vec3) -> (f64, f64) {
+    // p: a given point on the sphere of radius one, centered at the origin.
+
+    let theta = f64::acos(-p.y());
+    let phi = f64::atan2(-p.z(), p.x()) + PI;
+
+    (phi / (2.0 * PI), theta / PI)
 }

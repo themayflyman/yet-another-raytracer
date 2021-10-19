@@ -1,5 +1,6 @@
 use rand::{random, Rng};
 
+use crate::texture::Texture;
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -36,11 +37,11 @@ impl Clone for Box<dyn Material> {
 
 #[derive(Clone)]
 pub struct Lambertian {
-    albedo: Vec3,
+    albedo: Box<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Lambertian {
+    pub fn new(albedo: Box<dyn Texture>) -> Lambertian {
         return Lambertian { albedo };
     }
 }
@@ -49,7 +50,7 @@ impl Material for Lambertian {
     fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
         let target = rec.p + rec.normal + random_in_unit_sphere();
         Scatter {
-            color: self.albedo,
+            color: self.albedo.value(rec.u, rec.v, rec.p),
             ray: Some(Ray::new(rec.p, target - rec.p, _r_in.time())),
         }
     }

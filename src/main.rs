@@ -1,14 +1,15 @@
 extern crate rand;
 
-use rand::Rng;
-
 use camera::Camera;
 use hittable::{Hittable, HittableList};
 use material::{Dielectric, Lambertian, Material, Metal};
+use rand::Rng;
 use ray::Ray;
 use sphere::{MovingSphere, StillSphere};
 use vec3::Vec3;
+use texture::{CheckerTexture, SolidColor};
 
+mod texture;
 mod aabb;
 mod bvh;
 mod camera;
@@ -64,7 +65,8 @@ fn lerp(r: &Ray, world: &HittableList, depth: usize) -> Vec3 {
 fn random_scene() -> HittableList {
     let mut world: HittableList = HittableList::new();
 
-    let group_material = Box::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
+    let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
+    let group_material = Box::new(Lambertian::new(Box::new(checker)));
     world.add_sphere(Box::new(StillSphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -85,11 +87,11 @@ fn random_scene() -> HittableList {
                 let sphere_material: Box<dyn Material>;
 
                 if choose_mat < 0.8 {
-                    let albedo: Vec3 = Vec3::new(
+                    let albedo = Box::new(SolidColor::new(Vec3::new(
                         rng.gen_range(-1.0, 1.0),
                         rng.gen_range(-1.0, 1.0),
                         rng.gen_range(-1.0, 1.0),
-                    );
+                    )));
                     sphere_material = Box::new(Lambertian::new(albedo));
                     let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
                     world.add_sphere(Box::new(MovingSphere::new(
@@ -124,7 +126,7 @@ fn random_scene() -> HittableList {
         material1,
     )));
 
-    let material2 = Box::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
+    let material2 = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(0.4, 0.2, 0.1)))));
     world.add_sphere(Box::new(StillSphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -141,6 +143,18 @@ fn random_scene() -> HittableList {
     return world;
 }
 
+fn two_spheres () -> HittableList {
+    let mut objects = HittableList::new();
+
+    let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
+    let checker2 = checker.clone();
+
+    objects.add_sphere(Box::new(StillSphere::new(Vec3::new(0.0, -10.0, 0.0), 10.0, Box::new(Lambertian::new(Box::new(checker))))));
+    objects.add_sphere(Box::new(StillSphere::new(Vec3::new(0.0, 10.0, 0.0), 10.0, Box::new(Lambertian::new(Box::new(checker2))))));
+
+    objects
+}
+
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -150,19 +164,40 @@ fn main() {
     const MAX_DEPTH: usize = 50;
 
     // World
-    let world: HittableList = random_scene();
+    let world: HittableList;
+    let lookfrom: Vec3;
+    let lookat: Vec3;
+    let vfov: f64;
+    let mut aperture = 0.0;
 
-    let lookfrom: Vec3 = Vec3::new(13.0, 2.0, 3.0);
-    let lookat: Vec3 = Vec3::new(0.0, 0.0, 0.0);
+    let scene = 2;
+
+    match scene {
+        1 => {
+            world = random_scene();
+            lookfrom = Vec3::new(13.0, 2.0, 3.0);
+            lookat = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+            aperture = 0.1;
+        }
+
+        _ => {
+            world = two_spheres();
+            lookfrom = Vec3::new(13.0, 2.0, 3.0);
+            lookat = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+    }
+
     let vup: Vec3 = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
-    let aperture = 0.1;
+
     // Camera
     let camera: Camera = Camera::new(
         lookfrom,
         lookat,
         vup,
-        20.0,
+        vfov,
         ASPECT_RATIO,
         aperture,
         dist_to_focus,

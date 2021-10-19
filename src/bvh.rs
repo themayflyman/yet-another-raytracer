@@ -1,10 +1,9 @@
 use std::cmp::Ordering;
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::hittable::{HitRecord, Hittable, HittableList};
+use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use rand::Rng;
-
 
 #[derive(Clone)]
 pub struct BVHNode {
@@ -55,7 +54,13 @@ impl BVHNode {
         } else {
             objects.sort_unstable_by(comparator);
             let mid = start + object_span / 2;
-            left = Some(Box::new(Self::new(objects.clone(), start, mid, time0, time1)));
+            left = Some(Box::new(Self::new(
+                objects.clone(),
+                start,
+                mid,
+                time0,
+                time1,
+            )));
             right = Some(Box::new(Self::new(objects.clone(), mid, end, time0, time1)));
         }
 
