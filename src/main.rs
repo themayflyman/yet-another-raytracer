@@ -6,10 +6,9 @@ use material::{Dielectric, Lambertian, Material, Metal};
 use rand::Rng;
 use ray::Ray;
 use sphere::{MovingSphere, StillSphere};
+use texture::{CheckerTexture, NoiseTexture, SolidColor};
 use vec3::Vec3;
-use texture::{CheckerTexture, SolidColor};
 
-mod texture;
 mod aabb;
 mod bvh;
 mod camera;
@@ -17,6 +16,7 @@ mod hittable;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 mod vec3;
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
@@ -126,7 +126,9 @@ fn random_scene() -> HittableList {
         material1,
     )));
 
-    let material2 = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(0.4, 0.2, 0.1)))));
+    let material2 = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(
+        0.4, 0.2, 0.1,
+    )))));
     world.add_sphere(Box::new(StillSphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -143,14 +145,42 @@ fn random_scene() -> HittableList {
     return world;
 }
 
-fn two_spheres () -> HittableList {
+fn two_spheres() -> HittableList {
     let mut objects = HittableList::new();
 
     let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
     let checker2 = checker.clone();
 
-    objects.add_sphere(Box::new(StillSphere::new(Vec3::new(0.0, -10.0, 0.0), 10.0, Box::new(Lambertian::new(Box::new(checker))))));
-    objects.add_sphere(Box::new(StillSphere::new(Vec3::new(0.0, 10.0, 0.0), 10.0, Box::new(Lambertian::new(Box::new(checker2))))));
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, -10.0, 0.0),
+        10.0,
+        Box::new(Lambertian::new(Box::new(checker))),
+    )));
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, 10.0, 0.0),
+        10.0,
+        Box::new(Lambertian::new(Box::new(checker2))),
+    )));
+
+    objects
+}
+
+fn two_perlin_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let pertext = NoiseTexture::new();
+    let pertext2 = pertext.clone();
+
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Box::new(Lambertian::new(Box::new(pertext))),
+    )));
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Box::new(Lambertian::new(Box::new(pertext2))),
+    )));
 
     objects
 }
@@ -170,7 +200,7 @@ fn main() {
     let vfov: f64;
     let mut aperture = 0.0;
 
-    let scene = 2;
+    let scene = 3;
 
     match scene {
         1 => {
@@ -181,8 +211,15 @@ fn main() {
             aperture = 0.1;
         }
 
-        _ => {
+        2 => {
             world = two_spheres();
+            lookfrom = Vec3::new(13.0, 2.0, 3.0);
+            lookat = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+
+        _ => {
+            world = two_perlin_spheres();
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;

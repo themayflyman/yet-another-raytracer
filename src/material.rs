@@ -1,8 +1,8 @@
 use rand::{random, Rng};
 
-use crate::texture::Texture;
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::vec3::Vec3;
 
 #[derive(Clone, Debug)]

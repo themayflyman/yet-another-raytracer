@@ -28,7 +28,6 @@ impl Clone for Box<dyn Hittable> {
     }
 }
 
-
 pub struct HitRecord {
     pub u: f64,
     pub v: f64,
