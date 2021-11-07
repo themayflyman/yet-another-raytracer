@@ -76,18 +76,33 @@ impl Texture for CheckerTexture {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum NoiseType {
+    // Unfiltered noise
+    Square,
+    // Smooth interpolation with random unit vectors
+    Smooth,
+    // Marble pattern with adjustable phase
+    Marble,
+    // Turbulent pattern that resembles a next
+    Net,
+    // Trillinear interpolation
+    Trillinear,
+}
+
 #[derive(Clone)]
 pub struct Perlin {
     ranfloat: Vec<f64>,
     perm_x: Vec<i64>,
     perm_y: Vec<i64>,
     perm_z: Vec<i64>,
+    noise_type: NoiseType,
 }
 
 impl Perlin {
     const POINT_COUNT: usize = 256;
 
-    pub fn new() -> Self {
+    pub fn new(noise_type: NoiseType) -> Self {
         let mut rng = rand::thread_rng();
 
         Self {
@@ -97,15 +112,48 @@ impl Perlin {
             perm_x: Self::perlin_generate_perm(),
             perm_y: Self::perlin_generate_perm(),
             perm_z: Self::perlin_generate_perm(),
+            noise_type,
         }
     }
 
     pub fn noise(&self, p: Vec3) -> f64 {
-        let i: usize = ((4.0 * p.x()) as i64 & 255).try_into().unwrap();
-        let j: usize = ((4.0 * p.y()) as i64 & 255).try_into().unwrap();
-        let k: usize = ((4.0 * p.z()) as i64 & 255).try_into().unwrap();
+        match self.noise_type {
+            NoiseType::Square => {
+                let i: usize = ((4.0 * p.x()) as i64 & 255).try_into().unwrap();
+                let j: usize = ((4.0 * p.y()) as i64 & 255).try_into().unwrap();
+                let k: usize = ((4.0 * p.z()) as i64 & 255).try_into().unwrap();
 
-        return self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize];
+                return self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize];
+            }
+
+            NoiseType::Smooth => {
+                let u = p.x() - p.x().floor();
+                let v = p.y() - p.y().floor();
+                let w = p.z() - p.z().floor();
+
+                let i = p.x().floor() as i64;
+                let j = p.y().floor() as i64;
+                let k = p.z().floor() as i64;
+
+                let mut c = [[[0.0f64; 2]; 2]; 2];
+                for di in 0..2 {
+                    for dj in 0..2 {
+                        for dk in 0..2 {
+                            c[di][dj][dk] = self.ranfloat[(self.perm_x[(i + di as i64 & 255) as usize]
+                                ^ self.perm_y[(j + dj as i64 & 255) as usize]
+                                ^ self.perm_z[(k + dk as i64 & 255) as usize])
+                                as usize]
+                        }
+                    }
+                }
+
+                Self::trilinear_interp(c, u, v, w)
+            }
+
+            _ => {
+                1.0
+            }
+        }
     }
 
     fn perlin_generate_perm() -> Vec<i64> {
@@ -124,6 +172,22 @@ impl Perlin {
             p.swap(i, target);
         }
     }
+
+    fn trilinear_interp(c: [[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+        let mut accum = 0.0;
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    accum += (i as f64 * u + (1 - i) as f64 * (1.0 - u))
+                        * (j as f64 * v + (1 - j) as f64 * (1.0 - v))
+                        * (k as f64 * w + (1 - k) as f64 * (1.0 - w))
+                        * c[i][j][k];
+                }
+            }
+        }
+
+        accum
+    }
 }
 
 #[derive(Clone)]
@@ -132,9 +196,9 @@ pub struct NoiseTexture {
 }
 
 impl NoiseTexture {
-    pub fn new() -> Self {
+    pub fn new(noise_type: NoiseType) -> Self {
         Self {
-            noise: Perlin::new(),
+            noise: Perlin::new(noise_type),
         }
     }
 }

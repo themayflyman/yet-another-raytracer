@@ -9,6 +9,8 @@ use sphere::{MovingSphere, StillSphere};
 use texture::{CheckerTexture, NoiseTexture, SolidColor};
 use vec3::Vec3;
 
+use self::texture::NoiseType;
+
 mod aabb;
 mod bvh;
 mod camera;
@@ -168,7 +170,7 @@ fn two_spheres() -> HittableList {
 fn two_perlin_spheres() -> HittableList {
     let mut objects = HittableList::new();
 
-    let pertext = NoiseTexture::new();
+    let pertext = NoiseTexture::new(NoiseType::Smooth);
     let pertext2 = pertext.clone();
 
     objects.add_sphere(Box::new(StillSphere::new(
