@@ -277,6 +277,10 @@ impl Texture for NoiseTexture {
                Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(p * self.scale, 7)
             }
 
+            NoiseType::Marble => {
+               Vec3::new(1.0, 1.0, 1.0) * 0.5 *  (1.0 + f64::sin(self.scale * p.z() + 10.0 * self.noise.turb(p, 7)))
+            }
+
             _ => {
                Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale))
             }
