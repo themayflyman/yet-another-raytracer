@@ -77,17 +77,18 @@ impl Texture for CheckerTexture {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 pub enum NoiseType {
     // Unfiltered noise
     Square,
+    // Trillinear interpolation
+    Trillinear,
     // Smooth interpolation with random unit vectors
     Smooth,
     // Marble pattern with adjustable phase
     Marble,
     // Turbulent pattern that resembles a net
     Net,
-    // Trillinear interpolation
-    Trillinear,
 }
 
 #[derive(Clone)]
@@ -158,7 +159,7 @@ impl Perlin {
                 Self::trilinear_interp(c, u, v, w)
             }
 
-            NoiseType::Smooth => {
+            NoiseType::Smooth |  _ => {
                 let u = p.x() - p.x().floor();
                 let v = p.y() - p.y().floor();
                 let w = p.z() - p.z().floor();
@@ -182,8 +183,6 @@ impl Perlin {
 
                 Self::perlin_interp(c, u, v, w)
             }
-
-            _ => 1.0,
         }
     }
 
@@ -240,6 +239,20 @@ impl Perlin {
 
         accum
     }
+
+    pub fn turb(&self, p: Vec3, depth: usize) -> f64 {
+        let mut accum = 0.0;
+        let mut temp_p = p;
+        let mut weight = 1.0;
+
+        for _ in 0..depth {
+            accum += weight * self.noise(temp_p);
+            weight *= 0.5;
+            temp_p = temp_p * 2.0;
+        }
+
+        accum.abs()
+    }
 }
 
 #[derive(Clone)]
@@ -259,6 +272,14 @@ impl NoiseTexture {
 
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Vec3) -> Vec3 {
-        Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale))
+        match self.noise.noise_type {
+            NoiseType::Net => {
+               Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(p * self.scale, 7)
+            }
+
+            _ => {
+               Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale))
+            }
+        }
     }
 }
