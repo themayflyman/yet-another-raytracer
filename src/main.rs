@@ -170,7 +170,7 @@ fn two_spheres() -> HittableList {
 fn two_perlin_spheres() -> HittableList {
     let mut objects = HittableList::new();
 
-    let pertext = NoiseTexture::new(NoiseType::Smooth);
+    let pertext = NoiseTexture::new(NoiseType::Smooth, 4.0);
     let pertext2 = pertext.clone();
 
     objects.add_sphere(Box::new(StillSphere::new(

@@ -196,18 +196,20 @@ impl Perlin {
 #[derive(Clone)]
 pub struct NoiseTexture {
     noise: Perlin,
+    scale: f64,
 }
 
 impl NoiseTexture {
-    pub fn new(noise_type: NoiseType) -> Self {
+    pub fn new(noise_type: NoiseType, scale: f64) -> Self {
         Self {
             noise: Perlin::new(noise_type),
+            scale
         }
     }
 }
 
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Vec3) -> Vec3 {
-        Vec3::new(1.0, 1.0, 1.0) * self.noise.noise(p)
+        Vec3::new(1.0, 1.0, 1.0) * self.noise.noise(p * self.scale)
     }
 }
