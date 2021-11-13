@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::cmp::PartialEq;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -35,6 +36,17 @@ impl Vec3 {
 
     pub fn b(&self) -> f64 {
         self.elements[2]
+    }
+
+    pub fn random(low: f64, high: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        Vec3 {
+            elements: [
+                rng.gen_range(low, high),
+                rng.gen_range(low, high),
+                rng.gen_range(low, high),
+            ],
+        }
     }
 }
 

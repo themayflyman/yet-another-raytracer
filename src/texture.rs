@@ -93,6 +93,7 @@ pub enum NoiseType {
 #[derive(Clone)]
 pub struct Perlin {
     ranfloat: Vec<f64>,
+    ranvec: Vec<Vec3>,
     perm_x: Vec<i64>,
     perm_y: Vec<i64>,
     perm_z: Vec<i64>,
@@ -108,6 +109,9 @@ impl Perlin {
         Self {
             ranfloat: (0..Self::POINT_COUNT)
                 .map(|_| rng.gen_range::<f64>(0.0, 1.0))
+                .collect(),
+            ranvec: (0..Self::POINT_COUNT)
+                .map(|_| Vec3::random(-1.0, 1.0))
                 .collect(),
             perm_x: Self::perlin_generate_perm(),
             perm_y: Self::perlin_generate_perm(),
@@ -126,7 +130,7 @@ impl Perlin {
                 return self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize];
             }
 
-            NoiseType::Smooth => {
+            NoiseType::Trillinear => {
                 let mut u = p.x() - p.x().floor();
                 let mut v = p.y() - p.y().floor();
                 let mut w = p.z() - p.z().floor();
@@ -142,7 +146,8 @@ impl Perlin {
                 for di in 0..2 {
                     for dj in 0..2 {
                         for dk in 0..2 {
-                            c[di][dj][dk] = self.ranfloat[(self.perm_x[(i + di as i64 & 255) as usize]
+                            c[di][dj][dk] = self.ranfloat[(self.perm_x
+                                [(i + di as i64 & 255) as usize]
                                 ^ self.perm_y[(j + dj as i64 & 255) as usize]
                                 ^ self.perm_z[(k + dk as i64 & 255) as usize])
                                 as usize]
@@ -153,9 +158,32 @@ impl Perlin {
                 Self::trilinear_interp(c, u, v, w)
             }
 
-            _ => {
-                1.0
+            NoiseType::Smooth => {
+                let u = p.x() - p.x().floor();
+                let v = p.y() - p.y().floor();
+                let w = p.z() - p.z().floor();
+
+                let i = p.x().floor() as i64;
+                let j = p.y().floor() as i64;
+                let k = p.z().floor() as i64;
+
+                let mut c = [[[Vec3::default(); 2]; 2]; 2];
+                for di in 0..2 {
+                    for dj in 0..2 {
+                        for dk in 0..2 {
+                            c[di][dj][dk] = self.ranvec[(self.perm_x
+                                [(i + di as i64 & 255) as usize]
+                                ^ self.perm_y[(j + dj as i64 & 255) as usize]
+                                ^ self.perm_z[(k + dk as i64 & 255) as usize])
+                                as usize]
+                        }
+                    }
+                }
+
+                Self::perlin_interp(c, u, v, w)
             }
+
+            _ => 1.0,
         }
     }
 
@@ -191,6 +219,27 @@ impl Perlin {
 
         accum
     }
+
+    fn perlin_interp(c: [[[Vec3; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+        let uu = u * u * (3.0 - 2.0 * u);
+        let vv = v * v * (3.0 - 2.0 * v);
+        let ww = w * w * (3.0 - 2.0 * w);
+        let mut accum = 0.0;
+
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let weight_v = Vec3::new(u - i as f64, v - j as f64, w - k as f64);
+                    accum += (i as f64 * uu + (1.0 - i as f64) * (1.0 - uu))
+                        * (j as f64 * vv + (1.0 - j as f64) * (1.0 - vv))
+                        * (k as f64 * ww + (1.0 - k as f64) * (1.0 - ww))
+                        * weight_v.dot(&c[i][j][k]);
+                }
+            }
+        }
+
+        accum
+    }
 }
 
 #[derive(Clone)]
@@ -203,13 +252,13 @@ impl NoiseTexture {
     pub fn new(noise_type: NoiseType, scale: f64) -> Self {
         Self {
             noise: Perlin::new(noise_type),
-            scale
+            scale,
         }
     }
 }
 
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Vec3) -> Vec3 {
-        Vec3::new(1.0, 1.0, 1.0) * self.noise.noise(p * self.scale)
+        Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale))
     }
 }

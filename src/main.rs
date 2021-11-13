@@ -31,6 +31,7 @@ fn clamp(x: f64, min: f64, max: f64) -> f64 {
     x
 }
 
+#[allow(dead_code)]
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
     let a: f64 = r.direction().length_squared();
