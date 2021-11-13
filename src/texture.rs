@@ -84,7 +84,7 @@ pub enum NoiseType {
     Smooth,
     // Marble pattern with adjustable phase
     Marble,
-    // Turbulent pattern that resembles a next
+    // Turbulent pattern that resembles a net
     Net,
     // Trillinear interpolation
     Trillinear,
@@ -127,9 +127,12 @@ impl Perlin {
             }
 
             NoiseType::Smooth => {
-                let u = p.x() - p.x().floor();
-                let v = p.y() - p.y().floor();
-                let w = p.z() - p.z().floor();
+                let mut u = p.x() - p.x().floor();
+                let mut v = p.y() - p.y().floor();
+                let mut w = p.z() - p.z().floor();
+                u = u * u * (3.0 - 2.0 * u);
+                v = v * v * (3.0 - 2.0 * v);
+                w = w * w * (3.0 - 2.0 * w);
 
                 let i = p.x().floor() as i64;
                 let j = p.y().floor() as i64;
