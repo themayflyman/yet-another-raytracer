@@ -1,5 +1,8 @@
 use std::convert::TryInto;
+use std::error::Error;
+use std::path::Path;
 
+use crate::clamp;
 use crate::vec3::Vec3;
 use rand::Rng;
 
@@ -159,7 +162,7 @@ impl Perlin {
                 Self::trilinear_interp(c, u, v, w)
             }
 
-            NoiseType::Smooth |  _ => {
+            NoiseType::Smooth | _ => {
                 let u = p.x() - p.x().floor();
                 let v = p.y() - p.y().floor();
                 let w = p.z() - p.z().floor();
@@ -273,17 +276,75 @@ impl NoiseTexture {
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, p: Vec3) -> Vec3 {
         match self.noise.noise_type {
-            NoiseType::Net => {
-               Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(p * self.scale, 7)
-            }
+            NoiseType::Net => Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(p * self.scale, 7),
 
             NoiseType::Marble => {
-               Vec3::new(1.0, 1.0, 1.0) * 0.5 *  (1.0 + f64::sin(self.scale * p.z() + 10.0 * self.noise.turb(p, 7)))
+                Vec3::new(1.0, 1.0, 1.0)
+                    * 0.5
+                    * (1.0 + f64::sin(self.scale * p.z() + 10.0 * self.noise.turb(p, 7)))
             }
 
-            _ => {
-               Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale))
-            }
+            _ => Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale)),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct ImageTexture {
+    // Buffers of pixels
+    data: Vec<u8>,
+    width: u32,
+    height: u32,
+    bytes_per_pixel: u32,
+    bytes_per_scanline: u32,
+}
+
+impl ImageTexture {
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, Box<dyn Error>> {
+        let bytes_per_pixel = 3;
+        let img = image::open(filename)?.to_rgb8();
+        let (width, height) = img.dimensions();
+        let data = img.into_raw();
+
+        Ok(Self {
+            data,
+            width,
+            height,
+            bytes_per_pixel,
+            bytes_per_scanline: bytes_per_pixel * width,
+        })
+    }
+}
+
+impl Texture for ImageTexture {
+    fn value(&self, u: f64, v: f64, _p: Vec3) -> Vec3 {
+        // If we have no texture data, then return solid cyan as a debugging aid
+        if self.data.is_empty() {
+            return Vec3::new(1.0, 0.0, 1.0);
+        }
+
+        // Clamp input texture coordinates to [0,1] x [1,0]
+        let uu = clamp(u, 0.0, 1.0);
+        let vv = 1.0 - clamp(v, 0.0, 1.0); // Filp V to image coordinates
+
+        let mut i = (uu * f64::from(self.width)) as u32;
+        let mut j = (vv * f64::from(self.height)) as u32;
+
+        // Clamp intefer mapping, since actual coordinates should be less than 1.0
+        if i >= self.width {
+            i = self.width - 1;
+        }
+        if j >= self.height {
+            j = self.height - 1;
+        }
+
+        let color_scale = 1.0 / 255.0;
+        let pixel = (j * self.bytes_per_scanline + i * self.bytes_per_pixel) as usize;
+
+        return Vec3::new(
+            color_scale * self.data[pixel] as f64,
+            color_scale * self.data[pixel + 1] as f64,
+            color_scale * self.data[pixel + 2] as f64,
+        );
     }
 }

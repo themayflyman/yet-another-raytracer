@@ -9,7 +9,7 @@ use sphere::{MovingSphere, StillSphere};
 use texture::{CheckerTexture, NoiseTexture, SolidColor};
 use vec3::Vec3;
 
-use self::texture::NoiseType;
+use self::texture::{ImageTexture, NoiseType};
 
 mod aabb;
 mod bvh;
@@ -188,6 +188,17 @@ fn two_perlin_spheres() -> HittableList {
     objects
 }
 
+fn earth() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let earth_texture = ImageTexture::new("earthmap.jpg").unwrap();
+    let earth_surface = Lambertian::new(Box::new(earth_texture));
+    let global = StillSphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, Box::new(earth_surface));
+    objects.add_sphere(Box::new(global));
+
+    objects
+}
+
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -203,7 +214,7 @@ fn main() {
     let vfov: f64;
     let mut aperture = 0.0;
 
-    let scene = 3;
+    let scene = 4;
 
     match scene {
         1 => {
@@ -221,8 +232,15 @@ fn main() {
             vfov = 20.0;
         }
 
-        _ => {
+        3 => {
             world = two_perlin_spheres();
+            lookfrom = Vec3::new(13.0, 2.0, 3.0);
+            lookat = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+
+        _ => {
+            world = earth();
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
