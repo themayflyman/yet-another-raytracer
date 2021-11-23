@@ -9,9 +9,12 @@ use sphere::{MovingSphere, StillSphere};
 use texture::{CheckerTexture, NoiseTexture, SolidColor};
 use vec3::Vec3;
 
+use self::aarect::{XYRect, XZRect, YZRect};
+use self::material::DiffuseLight;
 use self::texture::{ImageTexture, NoiseType};
 
 mod aabb;
+mod aarect;
 mod bvh;
 mod camera;
 mod hittable;
@@ -45,24 +48,23 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     };
 }
 
-// Linear interpolation
-fn lerp(r: &Ray, world: &HittableList, depth: usize) -> Vec3 {
+fn ray_color(r: &Ray, background: Vec3, world: &HittableList, depth: usize) -> Vec3 {
     if depth <= 0 {
-        return Vec3::new(0.0, 0.0, 0.0);
+        return Vec3::default();
     }
 
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
         let scattered = rec.material.scatter(r, &rec);
+        let emitted = rec.material.emitted(rec.u, rec.v, rec.p);
+
         if let Some(scattered_ray) = scattered.ray {
-            return scattered.color * lerp(&scattered_ray, world, depth - 1);
+            return emitted + scattered.color * ray_color(&scattered_ray, background, world, depth - 1);
         } else {
-            return Vec3::new(0.0, 0.0, 0.0);
+            return emitted;
         }
     }
 
-    let unit_direction: Vec3 = r.direction().unit_vector();
-    let t: f64 = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
+    return background;
 }
 
 fn random_scene() -> HittableList {
@@ -199,13 +201,90 @@ fn earth() -> HittableList {
     objects
 }
 
+fn simple_light() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let pertext = NoiseTexture::new(NoiseType::Marble, 4.0);
+    let pertext2 = pertext.clone();
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Box::new(Lambertian::new(Box::new(pertext))),
+    )));
+    objects.add_sphere(Box::new(StillSphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Box::new(Lambertian::new(Box::new(pertext2))),
+    )));
+
+    let difflight = DiffuseLight::new(Box::new(SolidColor::new(Vec3::new(4.0, 4.0, 4.0))));
+    objects.add_sphere(Box::new(XYRect::new(
+        3.0,
+        5.0,
+        1.0,
+        3.0,
+        -2.0,
+        Box::new(difflight),
+    )));
+
+    objects
+}
+
+fn cornell_box() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let red = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(
+        0.65, 0.05, 0.05,
+    )))));
+    let white = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(
+        0.73, 0.73, 0.73,
+    )))));
+    let green = Box::new(Lambertian::new(Box::new(SolidColor::new(Vec3::new(
+        0.12, 0.45, 0.15,
+    )))));
+    let light = Box::new(DiffuseLight::new(Box::new(SolidColor::new(Vec3::new(
+        15.0, 15.0, 15.0,
+    )))));
+
+    objects.add_sphere(Box::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    objects.add_sphere(Box::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add_sphere(Box::new(XZRect::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    objects.add_sphere(Box::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add_sphere(Box::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add_sphere(Box::new(XYRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    objects
+}
+
 fn main() {
     // Image
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: usize = 400;
-    const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-    const SAMPLES_PER_PIXEL: usize = 100;
-    const MAX_DEPTH: usize = 50;
+    let mut aspect_ratio: f64 = 16.0 / 9.0;
+    let mut image_width: usize = 400;
+    let mut image_height: usize = (image_width as f64 / aspect_ratio) as usize;
+    let mut max_depth: usize = 50;
 
     // World
     let world: HittableList;
@@ -213,12 +292,15 @@ fn main() {
     let lookat: Vec3;
     let vfov: f64;
     let mut aperture = 0.0;
+    let background: Vec3;
+    let mut samples_per_pixel: usize = 100;
 
-    let scene = 4;
+    let scene = 6;
 
     match scene {
         1 => {
             world = random_scene();
+            background = Vec3::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -227,6 +309,7 @@ fn main() {
 
         2 => {
             world = two_spheres();
+            background = Vec3::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -234,16 +317,39 @@ fn main() {
 
         3 => {
             world = two_perlin_spheres();
+            background = Vec3::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
 
-        _ => {
+        4 => {
             world = earth();
+            background = Vec3::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
+        }
+
+        5 => {
+            world = simple_light();
+            samples_per_pixel = 400;
+            background = Vec3::default();
+            lookfrom = Vec3::new(26.0, 3.0, 6.0);
+            lookat = Vec3::new(0.0, 2.0, 0.0);
+            vfov = 20.0;
+        }
+
+        6 | _ => {
+            world = cornell_box();
+            aspect_ratio = 1.0;
+            image_width = 600;
+            image_height = 600;
+            samples_per_pixel = 200;
+            background = Vec3::default();
+            lookfrom = Vec3::new(278.0, 278.0, -800.0);
+            lookat = Vec3::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
         }
     }
 
@@ -256,7 +362,7 @@ fn main() {
         lookat,
         vup,
         vfov,
-        ASPECT_RATIO,
+        aspect_ratio,
         aperture,
         dist_to_focus,
         0.0,
@@ -265,23 +371,23 @@ fn main() {
 
     // Render
     println!("P3");
-    println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
+    println!("{} {}", image_width, image_height);
     println!("255");
 
-    for j in (0..IMAGE_HEIGHT).rev() {
+    for j in (0..image_height).rev() {
         eprintln!("Scanlines remaining: {}", j);
-        for i in 0..IMAGE_WIDTH {
+        for i in 0..image_width {
             let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
-            for _s in 0..SAMPLES_PER_PIXEL {
+            for _s in 0..samples_per_pixel {
                 let mut rng = rand::thread_rng();
 
-                let u: f64 = (i as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH - 1) as f64;
-                let v: f64 = (j as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
+                let u: f64 = (i as f64 + rng.gen::<f64>()) / (image_width - 1) as f64;
+                let v: f64 = (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
                 let r: Ray = camera.get_ray(u, v);
-                pixel_color = pixel_color + lerp(&r, &world, MAX_DEPTH);
+                pixel_color = pixel_color + ray_color(&r, background, &world, max_depth);
             }
 
-            let scale: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
+            let scale: f64 = 1.0 / samples_per_pixel as f64;
             println!(
                 "{} {} {}",
                 ((256 as f64 * clamp((pixel_color.r() * scale).sqrt(), 0.0, 0.999)) as i32),

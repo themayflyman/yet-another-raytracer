@@ -18,6 +18,10 @@ pub trait MaterialClone {
 
 pub trait Material: MaterialClone {
     fn scatter(&self, ray_in: &Ray, hit: &HitRecord) -> Scatter;
+
+    fn emitted(&self, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
+        return Vec3::default();
+    }
 }
 
 impl<T> MaterialClone for T
@@ -48,7 +52,7 @@ impl Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
-        let target = rec.p + rec.normal + random_in_unit_sphere();
+        let target = rec.p + random_in_hemisphere(&rec.normal);
         Scatter {
             color: self.albedo.value(rec.u, rec.v, rec.p),
             ray: Some(Ray::new(rec.p, target - rec.p, _r_in.time())),
@@ -169,5 +173,38 @@ pub fn random_in_unit_sphere() -> Vec3 {
             continue;
         }
         return p;
+    }
+}
+
+pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
+    let in_unit_sphere = random_in_unit_sphere();
+    if in_unit_sphere.dot(normal) > 0.0 {
+        return in_unit_sphere;
+    } else {
+        return -in_unit_sphere;
+    }
+}
+
+#[derive(Clone)]
+pub struct DiffuseLight {
+    emit: Box<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(emit: Box<dyn Texture>) -> Self {
+        Self { emit }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
+        return Scatter {
+            color: Vec3::default(),
+            ray: None,
+        };
+    }
+
+    fn emitted(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
+        return self.emit.value(u, v, p);
     }
 }
