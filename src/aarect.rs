@@ -5,17 +5,17 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 
 #[derive(Clone)]
-pub struct XYRect {
+pub struct XYRect<M: Material> {
     pub x0: f64,
     pub x1: f64,
     pub y0: f64,
     pub y1: f64,
     pub k: f64,
-    pub material: Box<dyn Material>,
+    pub material: M,
 }
 
-impl XYRect {
-    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: Box<dyn Material>) -> Self {
+impl<M: Material> XYRect<M> {
+    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: M) -> Self {
         Self {
             x0,
             x1,
@@ -27,7 +27,7 @@ impl XYRect {
     }
 }
 
-impl Hittable for XYRect {
+impl<M: Material> Hittable for XYRect<M> {
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         let outputbox = AABB::new(
             Vec3::new(self.x0, self.y0, self.k - 0.0001),
@@ -62,30 +62,30 @@ impl Hittable for XYRect {
             front_face = false;
         }
 
-        return Some(HitRecord::new(
+        return Some(HitRecord {
             u,
             v,
             t,
             p,
             normal,
             front_face,
-            self.material.clone(),
-        ));
+            material: &self.material,
+        });
     }
 }
 
 #[derive(Clone)]
-pub struct XZRect {
+pub struct XZRect<M: Material> {
     pub x0: f64,
     pub x1: f64,
     pub z0: f64,
     pub z1: f64,
     pub k: f64,
-    pub material: Box<dyn Material>,
+    pub material: M,
 }
 
-impl XZRect {
-    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: Box<dyn Material>) -> Self {
+impl<M: Material> XZRect<M> {
+    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: M) -> Self {
         Self {
             x0,
             x1,
@@ -97,7 +97,7 @@ impl XZRect {
     }
 }
 
-impl Hittable for XZRect {
+impl<M: Material> Hittable for XZRect<M> {
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         let outputbox = AABB::new(
             Vec3::new(self.x0, self.k - 0.0001, self.z0),
@@ -132,30 +132,30 @@ impl Hittable for XZRect {
             front_face = false;
         }
 
-        return Some(HitRecord::new(
+        return Some(HitRecord {
             u,
             v,
             t,
             p,
             normal,
             front_face,
-            self.material.clone(),
-        ));
+            material: &self.material,
+        });
     }
 }
 
 #[derive(Clone)]
-pub struct YZRect {
+pub struct YZRect<M: Material> {
     pub y0: f64,
     pub y1: f64,
     pub z0: f64,
     pub z1: f64,
     pub k: f64,
-    pub material: Box<dyn Material>,
+    pub material: M,
 }
 
-impl YZRect {
-    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, material: Box<dyn Material>) -> Self {
+impl<M: Material> YZRect<M> {
+    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, material: M) -> Self {
         Self {
             y0,
             y1,
@@ -167,7 +167,7 @@ impl YZRect {
     }
 }
 
-impl Hittable for YZRect {
+impl<M: Material> Hittable for YZRect<M> {
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         let outputbox = AABB::new(
             Vec3::new(self.k - 0.0001, self.y0, self.z0),
@@ -202,14 +202,14 @@ impl Hittable for YZRect {
             front_face = false;
         }
 
-        return Some(HitRecord::new(
+        return Some(HitRecord {
             u,
             v,
             t,
             p,
             normal,
             front_face,
-            self.material.clone(),
-        ));
+            material: &self.material,
+        });
     }
 }

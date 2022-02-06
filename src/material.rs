@@ -11,46 +11,30 @@ pub struct Scatter {
     pub ray: Option<Ray>,
 }
 
-// A workaround to implement Clone for Box
-pub trait MaterialClone {
-    fn clone_material<'a>(&self) -> Box<dyn Material>;
-}
-
-pub trait Material: MaterialClone {
-    fn scatter(&self, ray_in: &Ray, hit: &HitRecord) -> Scatter;
-
+pub trait Material: Send + Sync {
+    fn scatter(&self, ray_in: &Ray, hit: &HitRecord) -> Scatter {
+        Scatter {
+            color: Vec3::default(),
+            ray: None,
+        }
+    }
     fn emitted(&self, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
         return Vec3::default();
     }
 }
 
-impl<T> MaterialClone for T
-where
-    T: Material + Clone + 'static,
-{
-    fn clone_material(&self) -> Box<dyn Material> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn Material> {
-    fn clone(&self) -> Self {
-        self.clone_material()
-    }
-}
-
 #[derive(Clone)]
-pub struct Lambertian {
-    albedo: Box<dyn Texture>,
+pub struct Lambertian<T: Texture> {
+    albedo: T,
 }
 
-impl Lambertian {
-    pub fn new(albedo: Box<dyn Texture>) -> Lambertian {
-        return Lambertian { albedo };
+impl<T: Texture> Lambertian<T> {
+    pub fn new(albedo: T) -> Self {
+        Self { albedo }
     }
 }
 
-impl Material for Lambertian {
+impl<T: Texture> Material for Lambertian<T> {
     fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
         let target = rec.p + random_in_hemisphere(&rec.normal);
         Scatter {
@@ -186,17 +170,17 @@ pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
 }
 
 #[derive(Clone)]
-pub struct DiffuseLight {
-    emit: Box<dyn Texture>,
+pub struct DiffuseLight<T: Texture> {
+    emit: T,
 }
 
-impl DiffuseLight {
-    pub fn new(emit: Box<dyn Texture>) -> Self {
+impl<T: Texture> DiffuseLight<T> {
+    pub fn new(emit: T) -> Self {
         Self { emit }
     }
 }
 
-impl Material for DiffuseLight {
+impl<T: Texture> Material for DiffuseLight<T> {
     fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
         return Scatter {
             color: Vec3::default(),

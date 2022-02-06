@@ -7,16 +7,15 @@ use crate::vec3::Vec3;
 
 use super::hittable::{HitRecord, Hittable};
 
-#[derive(Clone)]
-pub struct StillSphere {
+pub struct StillSphere<M: Material> {
     pub center: Vec3,
     pub radius: f64,
-    pub material: Box<dyn Material>,
+    pub material: M,
 }
 
-impl StillSphere {
-    pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> StillSphere {
-        StillSphere {
+impl<M: Material> StillSphere<M> {
+    pub fn new(center: Vec3, radius: f64, material: M) -> Self {
+        Self {
             center,
             radius,
             material,
@@ -32,7 +31,7 @@ impl StillSphere {
     }
 }
 
-impl Hittable for StillSphere {
+impl<M: Material> Hittable for StillSphere<M> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vec3 = ray.origin() - self.center();
         let a: f64 = ray.direction().length_squared();
@@ -66,15 +65,15 @@ impl Hittable for StillSphere {
         }
         let (u, v) = get_sphere_uv(outward_normal);
 
-        Some(HitRecord::new(
+        Some(HitRecord {
             u,
             v,
             t,
             p,
             normal,
             front_face,
-            self.material.clone(),
-        ))
+            material: &self.material,
+        })
     }
 
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
@@ -85,26 +84,25 @@ impl Hittable for StillSphere {
     }
 }
 
-#[derive(Clone)]
-pub struct MovingSphere {
+pub struct MovingSphere<M: Material> {
     center0: Vec3,
     center1: Vec3,
     time0: f64,
     time1: f64,
     pub radius: f64,
-    pub material: Box<dyn Material>,
+    pub material: M,
 }
 
-impl MovingSphere {
+impl<M: Material> MovingSphere<M> {
     pub fn new(
         center0: Vec3,
         center1: Vec3,
         time0: f64,
         time1: f64,
         radius: f64,
-        material: Box<dyn Material>,
-    ) -> MovingSphere {
-        MovingSphere {
+        material: M,
+    ) -> Self {
+        Self {
             center0,
             center1,
             time0,
@@ -120,7 +118,7 @@ impl MovingSphere {
     }
 }
 
-impl Hittable for MovingSphere {
+impl<M: Material> Hittable for MovingSphere<M> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vec3 = ray.origin() - self.center(ray.time());
         let a: f64 = ray.direction().length_squared();
@@ -154,15 +152,15 @@ impl Hittable for MovingSphere {
         }
         let (u, v) = get_sphere_uv(outward_normal);
 
-        Some(HitRecord::new(
+        Some(HitRecord {
             u,
             v,
             t,
             p,
             normal,
             front_face,
-            self.material.clone(),
-        ))
+            material: &self.material,
+        })
     }
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {

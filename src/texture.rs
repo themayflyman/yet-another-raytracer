@@ -6,26 +6,7 @@ use crate::clamp;
 use crate::vec3::Vec3;
 use rand::Rng;
 
-pub trait TextureClone {
-    fn clone_texture<'a>(&self) -> Box<dyn Texture>;
-}
-
-impl<T> TextureClone for T
-where
-    T: Texture + Clone + 'static,
-{
-    fn clone_texture(&self) -> Box<dyn Texture> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn Texture> {
-    fn clone(&self) -> Self {
-        self.clone_texture()
-    }
-}
-
-pub trait Texture: TextureClone {
+pub trait Texture: Clone + Send + Sync {
     fn value(&self, u: f64, v: f64, p: Vec3) -> Vec3;
 }
 
