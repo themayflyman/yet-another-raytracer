@@ -16,8 +16,12 @@ use texture::{ImageTexture, NoiseType};
 use threadpool::ThreadPool;
 use vec3::Vec3;
 
+use self::box_entity::BoxEntity;
+use self::hittable::{RotateY, Translate};
+
 mod aabb;
 mod aarect;
+mod box_entity;
 // mod bvh;
 mod camera;
 mod hittable;
@@ -266,6 +270,32 @@ fn cornell_box() -> HittableList {
         Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73))),
     )));
 
+    let box1 = Box::new(Translate::new(
+        RotateY::new(
+            BoxEntity::new(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(165.0, 330.0, 165.0),
+                Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73))),
+            ),
+            15.0,
+        ),
+        Vec3::new(265.0, 0.0, 295.0),
+    ));
+    let box2 = Box::new(Translate::new(
+        RotateY::new(
+            BoxEntity::new(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(165.0, 165.0, 165.0),
+                Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73))),
+            ),
+            -18.0,
+        ),
+        Vec3::new(130.0, 0.0, 65.0),
+    ));
+
+    objects.add_sphere(box1);
+    objects.add_sphere(box2);
+
     objects
 }
 
@@ -324,7 +354,7 @@ fn main() {
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
             filename = "earth.png"
-        } 
+        }
 
         5 => {
             world = Arc::new(simple_light());
@@ -429,12 +459,7 @@ fn main() {
                     255,
                 ]);
 
-                tx.send(RenderResult {
-                    pixel,
-                    x: i,
-                    y: j,
-                })
-                .unwrap();
+                tx.send(RenderResult { pixel, x: i, y: j }).unwrap();
             })
         }
     }

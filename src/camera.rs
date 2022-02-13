@@ -35,7 +35,7 @@ fn random_in_unit_disk() -> Vec3 {
     p
 }
 
-fn degrees_to_radians(degrees: f64) -> f64 {
+pub fn degrees_to_radians(degrees: f64) -> f64 {
     return degrees * PI / 180.0;
 }
 

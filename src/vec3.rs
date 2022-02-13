@@ -1,6 +1,6 @@
 use rand::Rng;
 use std::cmp::PartialEq;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub};
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -140,6 +140,29 @@ impl Neg for Vec3 {
 impl PartialEq for Vec3 {
     fn eq(&self, other: &Vec3) -> bool {
         self.x() == other.x() && self.y() == other.y() && self.z() == other.z()
+    }
+}
+
+impl Index<usize> for Vec3 {
+    type Output = f64;
+    fn index(&self, idx: usize) -> &f64 {
+        match idx {
+            0 => &self.elements[0],
+            1 => &self.elements[1],
+            2 => &self.elements[2],
+            _ => panic!("out of range"),
+        }
+    }
+}
+
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, idx: usize) -> &mut f64 {
+        match idx {
+            0 => &mut self.elements[0],
+            1 => &mut self.elements[1],
+            2 => &mut self.elements[2],
+            _ => panic!("out of range"),
+        }
     }
 }
 
