@@ -17,7 +17,7 @@ use threadpool::ThreadPool;
 use vec3::Vec3;
 
 use self::box_entity::BoxEntity;
-use self::hittable::{RotateY, Translate};
+use self::hittable::{RotateY, Translate, ConstantMedium};
 
 mod aabb;
 mod aarect;
@@ -299,6 +299,73 @@ fn cornell_box() -> HittableList {
     objects
 }
 
+fn cornell_box_smoke() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let red = Lambertian::new(SolidColor::new(Vec3::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColor::new(Vec3::new(0.12, 0.45, 0.15)));
+    let light = DiffuseLight::new(SolidColor::new(Vec3::new(7.0, 7.0, 7.0)));
+
+    objects.add_sphere(Box::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    objects.add_sphere(Box::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add_sphere(Box::new(XZRect::new(
+        113.0, 443.0, 127.0, 432.0, 554.0, light,
+    )));
+    objects.add_sphere(Box::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add_sphere(Box::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add_sphere(Box::new(XYRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    let box1 = Box::new(ConstantMedium::new(Translate::new(
+        RotateY::new(
+            BoxEntity::new(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(165.0, 330.0, 165.0),
+                white.clone(),
+            ),
+            15.0,
+        ),
+        Vec3::new(265.0, 0.0, 295.0),
+    ), 0.01, SolidColor::new(Vec3::new(0.0, 0.0, 0.0))));
+    let box2 = Box::new(ConstantMedium::new(Translate::new(
+        RotateY::new(
+            BoxEntity::new(
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(165.0, 165.0, 165.0),
+                white.clone(),
+            ),
+            -18.0,
+        ),
+        Vec3::new(130.0, 0.0, 65.0),
+    ), 0.01, SolidColor::new(Vec3::new(1.0, 1.0, 1.0))));
+
+    objects.add_sphere(box1);
+    objects.add_sphere(box2);
+
+    objects
+}
+
 fn main() {
     // Image
     let mut aspect_ratio: f64 = 16.0 / 9.0;
@@ -316,7 +383,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let mut filename = "default.png";
 
-    let scene = 6;
+    let scene = 7;
 
     match scene {
         1 => {
@@ -366,7 +433,7 @@ fn main() {
             filename = "simple_light.png"
         }
 
-        6 | _ => {
+        6 => {
             world = Arc::new(cornell_box());
             aspect_ratio = 1.0;
             image_width = 600;
@@ -377,6 +444,19 @@ fn main() {
             lookat = Vec3::new(278.0, 278.0, 0.0);
             vfov = 40.0;
             filename = "cornell_box.png"
+        }
+
+        7 | _ => {
+            world = Arc::new(cornell_box_smoke());
+            aspect_ratio = 1.0;
+            image_width = 600;
+            image_height = 600;
+            samples_per_pixel = 200;
+            background = Vec3::default();
+            lookfrom = Vec3::new(278.0, 278.0, -800.0);
+            lookat = Vec3::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
+            filename = "cornell_box_smoke.png"
         }
     }
 

@@ -1,8 +1,11 @@
 use crate::aabb::{surrounding_box, AABB};
 use crate::camera::degrees_to_radians;
-use crate::material::Material;
+use crate::material::{Material, Isotropic};
 use crate::ray::Ray;
+use crate::texture::{self, Texture};
 use crate::vec3::Vec3;
+
+use rand::Rng;
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
@@ -204,5 +207,76 @@ impl<T: Hittable> Hittable for RotateY<T> {
 
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         self.bbox
+    }
+}
+
+pub struct ConstantMedium<TH: Hittable, TM: Material> {
+    boundary: TH,
+    phase_function: TM,
+    neg_inv_density: f64
+}
+
+impl<TT: Texture, TH: Hittable> ConstantMedium<TH, Isotropic<TT>> {
+    pub fn new(boundary: TH, density: f64, texture: TT) -> Self {
+        Self {
+          boundary,
+          phase_function: Isotropic::new(texture),
+          neg_inv_density: -1.0 / density,
+        }
+    }
+}
+
+impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut rng = rand::thread_rng();
+        match self.boundary.hit(ray, -f64::INFINITY, f64::INFINITY) {
+            Some(mut rec1) => match self.boundary.hit(ray, rec1.t + 0.0001, f64::INFINITY) {
+                Some(mut rec2) => {
+                    if rec1.t < t_min {
+                        rec1.t = t_min;
+                    }
+                    if rec2.t > t_max {
+                        rec2.t = t_max;
+                    }
+                    if rec1.t < rec2.t {
+                        if rec1.t < 0.0 {
+                            rec1.t = 0.0;
+                        }
+
+                        let ray_length = ray.direction().length();
+                        let distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
+                        let hit_distance = self.neg_inv_density * rng.gen::<f64>().ln();
+
+                        if hit_distance < distance_inside_boundary {
+                            let t = rec1.t + hit_distance / ray_length;
+                            let p = ray.at(t);
+
+                          Some(HitRecord {
+                              u: 0.0,
+                              v: 0.0,
+                              t,
+                              p,
+                              normal: Vec3::new(1.0, 0.0, 0.0),
+                              front_face: true,
+                              material: &self.phase_function,
+                          })
+                        } else {
+                            None
+                        }
+
+                    } else {
+                        None
+                    }
+                }
+
+                None => None,
+            }
+
+            None => None,
+        }
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        self.boundary.bounding_box(time0, time1)
     }
 }
