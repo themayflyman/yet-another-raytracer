@@ -183,8 +183,8 @@ impl Vec3 {
     }
 
     pub fn near_zero(&self) -> bool {
-        return self.elements[0] as i32 == 0
-            && self.elements[1] as i32 == 0
-            && self.elements[2] as i32 == 0;
+        return f64::abs(self.elements[0]) < 1e-8
+            && f64::abs(self.elements[0]) < 1e-8
+            && f64::abs(self.elements[0]) < 1e-8;
     }
 }

@@ -36,10 +36,15 @@ impl<T: Texture> Lambertian<T> {
 
 impl<T: Texture> Material for Lambertian<T> {
     fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
-        let target = rec.p + random_in_hemisphere(&rec.normal);
+        let mut scatter_direction = rec.normal + random_in_unit_vector();
+
+        if scatter_direction.near_zero() {
+            scatter_direction = rec.normal;
+        }
+
         Scatter {
             color: self.albedo.value(rec.u, rec.v, rec.p),
-            ray: Some(Ray::new(rec.p, target - rec.p, _r_in.time())),
+            ray: Some(Ray::new(rec.p, scatter_direction, _r_in.time())),
         }
     }
 }
@@ -140,6 +145,10 @@ impl Material for Dielectric {
             };
         }
     }
+}
+
+pub fn random_in_unit_vector() -> Vec3 {
+    return random_in_unit_sphere().unit_vector();
 }
 
 pub fn random_in_unit_sphere() -> Vec3 {

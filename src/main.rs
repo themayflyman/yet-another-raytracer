@@ -64,7 +64,11 @@ fn ray_color(r: &Ray, background: Vec3, world: &HittableList, depth: usize) -> V
 
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
         let scattered = rec.material.scatter(r, &rec);
-        let emitted = rec.material.emitted(rec.u, rec.v, rec.p);
+        let mut emitted = rec.material.emitted(rec.u, rec.v, rec.p);
+
+        if rec.normal.dot(&r.direction()) >= 0.0 {
+            emitted = Vec3::default();
+        }
 
         if let Some(scattered_ray) = scattered.ray {
             return emitted
