@@ -1,9 +1,10 @@
 use crate::aabb::{surrounding_box, AABB};
 use crate::camera::degrees_to_radians;
-use crate::material::{Material, Isotropic};
+use crate::material::{Isotropic, Material};
 use crate::ray::Ray;
-use crate::texture::{self, Texture};
+use crate::texture::Texture;
 use crate::vec3::Vec3;
+use std::sync::Arc;
 
 use rand::Rng;
 
@@ -24,18 +25,18 @@ pub struct HitRecord<'a> {
 }
 
 pub struct HittableList {
-    pub spheres: Vec<Box<dyn Hittable>>,
+    pub spheres: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
-    pub fn new() -> HittableList {
-        let sphere_list: Vec<Box<dyn Hittable>> = Vec::new();
-        HittableList {
+    pub fn new() -> Self {
+        let sphere_list: Vec<Arc<dyn Hittable>> = Vec::new();
+        Self {
             spheres: sphere_list,
         }
     }
 
-    pub fn add_sphere(&mut self, sphere: Box<dyn Hittable>) {
+    pub fn add_sphere(&mut self, sphere: Arc<dyn Hittable>) {
         self.spheres.push(sphere);
     }
 
@@ -213,15 +214,15 @@ impl<T: Hittable> Hittable for RotateY<T> {
 pub struct ConstantMedium<TH: Hittable, TM: Material> {
     boundary: TH,
     phase_function: TM,
-    neg_inv_density: f64
+    neg_inv_density: f64,
 }
 
 impl<TT: Texture, TH: Hittable> ConstantMedium<TH, Isotropic<TT>> {
     pub fn new(boundary: TH, density: f64, texture: TT) -> Self {
         Self {
-          boundary,
-          phase_function: Isotropic::new(texture),
-          neg_inv_density: -1.0 / density,
+            boundary,
+            phase_function: Isotropic::new(texture),
+            neg_inv_density: -1.0 / density,
         }
     }
 }
@@ -251,26 +252,25 @@ impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
                             let t = rec1.t + hit_distance / ray_length;
                             let p = ray.at(t);
 
-                          Some(HitRecord {
-                              u: 0.0,
-                              v: 0.0,
-                              t,
-                              p,
-                              normal: Vec3::new(1.0, 0.0, 0.0),
-                              front_face: true,
-                              material: &self.phase_function,
-                          })
+                            Some(HitRecord {
+                                u: 0.0,
+                                v: 0.0,
+                                t,
+                                p,
+                                normal: Vec3::new(1.0, 0.0, 0.0),
+                                front_face: true,
+                                material: &self.phase_function,
+                            })
                         } else {
                             None
                         }
-
                     } else {
                         None
                     }
                 }
 
                 None => None,
-            }
+            },
 
             None => None,
         }

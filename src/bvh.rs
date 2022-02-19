@@ -4,17 +4,17 @@ use crate::aabb::{surrounding_box, AABB};
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use rand::Rng;
+use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct BVHNode {
-    pub left: Option<Box<dyn Hittable>>,
-    pub right: Option<Box<dyn Hittable>>,
+    pub left: Option<Arc<dyn Hittable>>,
+    pub right: Option<Arc<dyn Hittable>>,
     pub aabb_box: AABB,
 }
 
 impl BVHNode {
-    fn new(
-        mut objects: Vec<Box<dyn Hittable>>,
+    pub fn new(
+        objects: &mut Vec<Arc<dyn Hittable>>,
         start: usize,
         end: usize,
         time0: f64,
@@ -23,7 +23,7 @@ impl BVHNode {
         let mut rnd = rand::thread_rng();
 
         let axis = rnd.gen_range(0, 3);
-        let comparator = |x: &Box<dyn Hittable>, y: &Box<dyn Hittable>| {
+        let comparator = |x: &Arc<dyn Hittable>, y: &Arc<dyn Hittable>| {
             f64::partial_cmp(
                 &(x.bounding_box(time0, time1).unwrap().min[axis]),
                 &(y.bounding_box(time0, time1).unwrap().min[axis]),
@@ -54,14 +54,8 @@ impl BVHNode {
         } else {
             objects.sort_unstable_by(comparator);
             let mid = start + object_span / 2;
-            left = Some(Box::new(Self::new(
-                objects.clone(),
-                start,
-                mid,
-                time0,
-                time1,
-            )));
-            right = Some(Box::new(Self::new(objects.clone(), mid, end, time0, time1)));
+            left = Some(Arc::new(Self::new(objects, start, mid, time0, time1)));
+            right = Some(Arc::new(Self::new(objects, mid, end, time0, time1)));
         }
 
         if left.as_ref().unwrap().bounding_box(time0, time1).is_none()
