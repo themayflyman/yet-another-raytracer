@@ -4,6 +4,8 @@ use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::time;
 
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle, HumanDuration};
+
 use aarect::{XYRect, XZRect, YZRect};
 use bvh::BVHNode;
 use camera::Camera;
@@ -33,9 +35,10 @@ mod texture;
 mod vec3;
 
 struct RenderResult {
-    pub pixel: image::Rgba<u8>,
-    pub x: u32,
-    pub y: u32,
+    pub img: image::RgbaImage,
+    pub row: u32,
+    pub col: u32,
+    pub duration: time::Duration,
 }
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
@@ -401,7 +404,13 @@ fn the_next_week_final_scene() -> HittableList {
 
     let mut objects = HittableList::new();
 
-    objects.add_sphere(Arc::new(BVHNode::new(&mut boxes1.spheres, 0, 400, 0.0, 0.0)));
+    objects.add_sphere(Arc::new(BVHNode::new(
+        &mut boxes1.spheres,
+        0,
+        400,
+        0.0,
+        0.0,
+    )));
 
     let light = DiffuseLight::new(SolidColor::new(Vec3::new(7.0, 7.0, 7.0)));
     objects.add_sphere(Arc::new(XZRect::new(
@@ -494,7 +503,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let mut filename = "default.png";
 
-    let scene = 8;
+    let scene = 7;
 
     match scene {
         1 => {
@@ -600,80 +609,82 @@ fn main() {
         1.0,
     ));
 
-    // Render
-    // println!("P3");
-    // println!("{} {}", image_width, image_height);
-    // println!("255");
-
-    // for j in (0..image_height).rev() {
-    //     eprintln!("Scanlines remaining: {}", j);
-    //     for i in 0..image_width {
-    //         let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
-    //         for _s in 0..samples_per_pixel {
-    //             let mut rng = rand::thread_rng();
-
-    //             let u: f64 = (i as f64 + rng.gen::<f64>()) / (image_width - 1) as f64;
-    //             let v: f64 = (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
-    //             let r: Ray = camera.get_ray(u, v);
-    //             pixel_color = pixel_color + ray_color(&r, background, &world, max_depth);
-    //         }
-
-    //         let scale: f64 = 1.0 / samples_per_pixel as f64;
-    //         println!(
-    //             "{} {} {}",
-    //             ((256 as f64 * clamp((pixel_color.r() * scale).sqrt(), 0.0, 0.999)) as i32),
-    //             ((256 as f64 * clamp((pixel_color.g() * scale).sqrt(), 0.0, 0.999)) as i32),
-    //             ((256 as f64 * clamp((pixel_color.b() * scale).sqrt(), 0.0, 0.999)) as i32),
-    //         );
-    //     }
-    // }
-
-    // eprintln!("Done.");
-
     let n_workers = 8;
     let mut img = image::RgbaImage::new(image_width as u32, image_height as u32);
-    let n_jobs = image_width * image_height;
+    let block_col = 6;
+    let block_row = 6;
+    let n_jobs = block_col * block_row;
     let pool = ThreadPool::new(n_workers);
 
     let start_time = time::Instant::now();
 
     let (tx, rx) = channel();
-    for j in (0..image_height) {
-        for i in 0..image_width {
+    for col in 0..block_col {
+        for row in 0..block_row {
             let scale: f64 = 1.0 / samples_per_pixel as f64;
             let tx = tx.clone();
             let camera = camera.clone();
             let world = world.clone();
+            let crop_x = image_width * col / block_col;
+            let crop_y = image_height * row / block_row;
+            let crop_width = image_width / block_col;
+            let crop_height = image_height / block_row;
+            let mut imgbuf = image::RgbaImage::new(crop_width, crop_height);
 
             pool.execute(move || {
-                let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
-                for _s in 0..samples_per_pixel {
-                    let mut rng = rand::thread_rng();
+                let start_time = time::Instant::now();
+                for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                    let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
+                    for _s in 0..samples_per_pixel {
+                        let mut rng = rand::thread_rng();
 
-                    let u: f64 = (i as f64 + rng.gen::<f64>()) / (image_width - 1) as f64;
-                    let v: f64 = 1.0 - (j as f64 + rng.gen::<f64>()) / (image_height - 1) as f64;
-                    let r: Ray = camera.get_ray(u, v);
-                    pixel_color = pixel_color + ray_color(&r, background, &world, max_depth);
+                        let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                        let u: f64 = target_x / (image_width - 1) as f64;
+                        let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                        let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
+                        let r: Ray = camera.get_ray(u, v);
+                        pixel_color = pixel_color + ray_color(&r, background, &world, max_depth);
+                    }
+
+                    *pixel = image::Rgba([
+                        (256 as f64 * clamp((pixel_color.r() * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256 as f64 * clamp((pixel_color.g() * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256 as f64 * clamp((pixel_color.b() * scale).sqrt(), 0.0, 0.999)) as u8,
+                        255,
+                    ]);
                 }
 
-                let pixel = image::Rgba([
-                    (256 as f64 * clamp((pixel_color.r() * scale).sqrt(), 0.0, 0.999)) as u8,
-                    (256 as f64 * clamp((pixel_color.g() * scale).sqrt(), 0.0, 0.999)) as u8,
-                    (256 as f64 * clamp((pixel_color.b() * scale).sqrt(), 0.0, 0.999)) as u8,
-                    255,
-                ]);
-
-                tx.send(RenderResult { pixel, x: i, y: j }).unwrap();
+                tx.send(RenderResult {
+                    img: imgbuf,
+                    row,
+                    col,
+                    duration: start_time.elapsed(),
+                })
+                .unwrap();
             })
         }
     }
 
+    let bar = ProgressBar::new(n_jobs as u64);
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{prefix:>12.cyan.bold} [{bar:57}] {percent}%")
+            .progress_chars("=> "),
+    );
+    bar.set_prefix("Rendering");
     for (i, result) in rx.iter().enumerate().take(n_jobs as usize) {
         let result = result as RenderResult;
-        img.put_pixel(result.x, result.y, result.pixel)
-    }
+        bar.inc(1);
 
-    eprintln!("{}", (time::Instant::now() - start_time).as_millis() / 1000);
+        let x1 = image_width * result.col / block_col;
+        let y1 = image_height * result.row / block_row;
+        for (x, y, pixel) in result.img.enumerate_pixels() {
+            img.put_pixel(x1 + x, y1 + y, *pixel);
+        }
+    }
+    bar.finish_and_clear();
+
+    println!("{} rendered in {}", filename, HumanDuration(start_time.elapsed()));
 
     img.save(format!("{}", filename)).unwrap();
 }
