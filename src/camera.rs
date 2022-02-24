@@ -15,6 +15,7 @@ pub struct Camera {
     origin: Vec3,
     u: Vec3,
     v: Vec3,
+    #[allow(dead_code)]
     w: Vec3,
     lens_radius: f64,
     time0: f64,
@@ -36,10 +37,11 @@ fn random_in_unit_disk() -> Vec3 {
 }
 
 pub fn degrees_to_radians(degrees: f64) -> f64 {
-    return degrees * PI / 180.0;
+    degrees * PI / 180.0
 }
 
 impl Camera {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         lookfrom: Vec3,
         lookat: Vec3,
@@ -50,7 +52,7 @@ impl Camera {
         focus_dist: f64,
         time0: f64,
         time1: f64,
-    ) -> Camera {
+    ) -> Self {
         let theta: f64 = degrees_to_radians(vfov);
         let h: f64 = f64::tan(theta / 2.0);
         let viewport_height: f64 = 2.0 * h;
@@ -67,7 +69,7 @@ impl Camera {
 
         let lens_radius: f64 = aperture / 2.0;
 
-        Camera {
+        Self {
             lower_left_corner,
             horizontal,
             vertical,

@@ -199,15 +199,15 @@ impl Vec3 {
         }
     }
 
-    pub fn colorize(&mut self) -> () {
+    pub fn colorize(&mut self) {
         self.elements[0] = self.elements[0].floor();
         self.elements[1] = self.elements[1].floor();
         self.elements[2] = self.elements[2].floor();
     }
 
     pub fn near_zero(&self) -> bool {
-        return f64::abs(self.elements[0]) < 1e-8
+        f64::abs(self.elements[0]) < 1e-8
             && f64::abs(self.elements[0]) < 1e-8
-            && f64::abs(self.elements[0]) < 1e-8;
+            && f64::abs(self.elements[0]) < 1e-8
     }
 }

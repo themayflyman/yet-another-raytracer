@@ -1,10 +1,11 @@
-use crate::aabb::AABB;
+use crate::aabb::AxisAlignedBoundingBox;
 use crate::aarect::{XYRect, XZRect, YZRect};
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
+#[allow(clippy::type_complexity)]
 pub struct BoxEntity<M: Material + Clone> {
     box_min: Vec3,
     box_max: Vec3,
@@ -29,7 +30,7 @@ impl<M: Material + Clone> BoxEntity<M> {
                 XZRect::new(p0.x(), p1.x(), p0.z(), p1.z(), p0.y(), material.clone()),
                 XZRect::new(p0.x(), p1.x(), p0.z(), p1.z(), p1.y(), material.clone()),
                 YZRect::new(p0.y(), p1.y(), p0.z(), p1.z(), p0.x(), material.clone()),
-                YZRect::new(p0.y(), p1.y(), p0.z(), p1.z(), p1.x(), material.clone()),
+                YZRect::new(p0.y(), p1.y(), p0.z(), p1.z(), p1.x(), material),
             ),
         }
     }
@@ -48,6 +49,7 @@ macro_rules! hit {
 }
 
 impl<M: Material + Clone> Hittable for BoxEntity<M> {
+    #[allow(unused_assignments)]
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit_rec: Option<HitRecord> = None;
         let mut closest_so_far: f64 = t_max;
@@ -64,11 +66,10 @@ impl<M: Material + Clone> Hittable for BoxEntity<M> {
         hit!(hitable, ray, t_min, closest_so_far, hit_rec);
         let hitable = &self.sides.5;
         hit!(hitable, ray, t_min, closest_so_far, hit_rec);
-        std::mem::drop(closest_so_far);
         hit_rec
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        return Some(AABB::new(self.box_min, self.box_max));
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        Some(AxisAlignedBoundingBox::new(self.box_min, self.box_max))
     }
 }

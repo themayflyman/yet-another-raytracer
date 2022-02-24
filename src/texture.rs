@@ -112,7 +112,7 @@ impl Perlin {
                 let j: usize = ((4.0 * p.y()) as i64 & 255).try_into().unwrap();
                 let k: usize = ((4.0 * p.z()) as i64 & 255).try_into().unwrap();
 
-                return self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize];
+                self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize]
             }
 
             NoiseType::Trillinear => {
@@ -128,13 +128,13 @@ impl Perlin {
                 let k = p.z().floor() as i64;
 
                 let mut c = [[[0.0f64; 2]; 2]; 2];
-                for di in 0..2 {
-                    for dj in 0..2 {
-                        for dk in 0..2 {
-                            c[di][dj][dk] = self.ranfloat[(self.perm_x
-                                [(i + di as i64 & 255) as usize]
-                                ^ self.perm_y[(j + dj as i64 & 255) as usize]
-                                ^ self.perm_z[(k + dk as i64 & 255) as usize])
+                for (di, i_item) in c.iter_mut().enumerate() {
+                    for (dj, ij_item) in i_item.iter_mut().enumerate() {
+                        for (dk, ijk_item) in ij_item.iter_mut().enumerate() {
+                            *ijk_item = self.ranfloat[(self.perm_x
+                                [((i + di as i64) & 255) as usize]
+                                ^ self.perm_y[((j + dj as i64) & 255) as usize]
+                                ^ self.perm_z[((k + dk as i64) & 255) as usize])
                                 as usize]
                         }
                     }
@@ -143,7 +143,7 @@ impl Perlin {
                 Self::trilinear_interp(c, u, v, w)
             }
 
-            NoiseType::Smooth | _ => {
+            NoiseType::Smooth | NoiseType::Marble | NoiseType::Net => {
                 let u = p.x() - p.x().floor();
                 let v = p.y() - p.y().floor();
                 let w = p.z() - p.z().floor();
@@ -153,19 +153,23 @@ impl Perlin {
                 let k = p.z().floor() as i64;
 
                 let mut c = [[[Vec3::default(); 2]; 2]; 2];
-                for di in 0..2 {
-                    for dj in 0..2 {
-                        for dk in 0..2 {
-                            c[di][dj][dk] = self.ranvec[(self.perm_x
-                                [(i + di as i64 & 255) as usize]
-                                ^ self.perm_y[(j + dj as i64 & 255) as usize]
-                                ^ self.perm_z[(k + dk as i64 & 255) as usize])
+                for (di, i_item) in c.iter_mut().enumerate() {
+                    for (dj, ij_item) in i_item.iter_mut().enumerate() {
+                        for (dk, ijk_item) in ij_item.iter_mut().enumerate() {
+                            *ijk_item = self.ranvec[(self.perm_x
+                                [((i + di as i64) & 255) as usize]
+                                ^ self.perm_y[((j + dj as i64) & 255) as usize]
+                                ^ self.perm_z[((k + dk as i64) & 255) as usize])
                                 as usize]
                         }
                     }
                 }
 
                 Self::perlin_interp(c, u, v, w)
+            }
+
+            _ => {
+                panic!("No matched nosie type");
             }
         }
     }
@@ -189,13 +193,13 @@ impl Perlin {
 
     fn trilinear_interp(c: [[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
         let mut accum = 0.0;
-        for i in 0..2 {
-            for j in 0..2 {
-                for k in 0..2 {
+        for (i, i_item) in c.iter().enumerate() {
+            for (j, ij_item) in i_item.iter().enumerate() {
+                for (k, ijk_item) in ij_item.iter().enumerate() {
                     accum += (i as f64 * u + (1 - i) as f64 * (1.0 - u))
                         * (j as f64 * v + (1 - j) as f64 * (1.0 - v))
                         * (k as f64 * w + (1 - k) as f64 * (1.0 - w))
-                        * c[i][j][k];
+                        * ijk_item;
                 }
             }
         }
@@ -209,14 +213,14 @@ impl Perlin {
         let ww = w * w * (3.0 - 2.0 * w);
         let mut accum = 0.0;
 
-        for i in 0..2 {
-            for j in 0..2 {
-                for k in 0..2 {
+        for (i, i_item) in c.iter().enumerate() {
+            for (j, ij_item) in i_item.iter().enumerate() {
+                for (k, ijk_item) in ij_item.iter().enumerate() {
                     let weight_v = Vec3::new(u - i as f64, v - j as f64, w - k as f64);
                     accum += (i as f64 * uu + (1.0 - i as f64) * (1.0 - uu))
                         * (j as f64 * vv + (1.0 - j as f64) * (1.0 - vv))
                         * (k as f64 * ww + (1.0 - k as f64) * (1.0 - ww))
-                        * weight_v.dot(&c[i][j][k]);
+                        * weight_v.dot(ijk_item);
                 }
             }
         }
@@ -322,10 +326,10 @@ impl Texture for ImageTexture {
         let color_scale = 1.0 / 255.0;
         let pixel = (j * self.bytes_per_scanline + i * self.bytes_per_pixel) as usize;
 
-        return Vec3::new(
+        Vec3::new(
             color_scale * self.data[pixel] as f64,
             color_scale * self.data[pixel + 1] as f64,
             color_scale * self.data[pixel + 2] as f64,
-        );
+        )
     }
 }

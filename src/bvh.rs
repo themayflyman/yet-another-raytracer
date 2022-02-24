@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use rand::Rng;
@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub struct BVHNode {
     pub left: Option<Arc<dyn Hittable>>,
     pub right: Option<Arc<dyn Hittable>>,
-    pub aabb_box: AABB,
+    pub aabb_box: AxisAlignedBoundingBox,
 }
 
 impl BVHNode {
@@ -64,16 +64,16 @@ impl BVHNode {
             panic!("No bounding box in bvh_node constuctor.\n")
         }
 
-        let aabb_box: AABB = surrounding_box(
+        let aabb_box: AxisAlignedBoundingBox = surrounding_box(
             left.as_ref().unwrap().bounding_box(time0, time1).unwrap(),
             right.as_ref().unwrap().bounding_box(time0, time1).unwrap(),
         );
 
-        return Self {
+        Self {
             left,
             right,
             aabb_box,
-        };
+        }
     }
 }
 
@@ -100,7 +100,7 @@ impl Hittable for BVHNode {
         hit_rec
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         Some(self.aabb_box)
     }
 }

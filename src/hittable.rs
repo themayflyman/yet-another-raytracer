@@ -1,4 +1,4 @@
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::camera::degrees_to_radians;
 use crate::material::{Isotropic, Material};
 use crate::ray::Ray;
@@ -11,7 +11,7 @@ use rand::Rng;
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;
 }
 
 pub struct HitRecord<'a> {
@@ -25,23 +25,23 @@ pub struct HitRecord<'a> {
 }
 
 pub struct HittableList {
-    pub spheres: Vec<Arc<dyn Hittable>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
     pub fn new() -> Self {
-        let sphere_list: Vec<Arc<dyn Hittable>> = Vec::new();
+        let objects: Vec<Arc<dyn Hittable>> = Vec::new();
         Self {
-            spheres: sphere_list,
+            objects,
         }
     }
 
-    pub fn add_sphere(&mut self, sphere: Arc<dyn Hittable>) {
-        self.spheres.push(sphere);
+    pub fn add_object(&mut self, object: Arc<dyn Hittable>) {
+        self.objects.push(object);
     }
 
     pub fn size(&self) -> usize {
-        self.spheres.len()
+        self.objects.len()
     }
 }
 
@@ -50,7 +50,7 @@ impl Hittable for HittableList {
         let mut hit_rec: Option<HitRecord> = None;
         let mut closet_so_far: f64 = t_max;
 
-        for sphere in self.spheres.iter() {
+        for sphere in self.objects.iter() {
             if let Some(temp_rec) = sphere.hit(ray, t_min, closet_so_far) {
                 closet_so_far = temp_rec.t;
                 hit_rec = Some(temp_rec);
@@ -60,15 +60,15 @@ impl Hittable for HittableList {
         hit_rec
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
-        if self.spheres.is_empty() {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+        if self.objects.is_empty() {
             return None;
         }
 
-        let mut temp_box: AABB = AABB::default();
+        let mut temp_box: AxisAlignedBoundingBox = AxisAlignedBoundingBox::default();
         let mut first_box = true;
 
-        for sphere in self.spheres.iter() {
+        for sphere in self.objects.iter() {
             if let Some(tot_box) = sphere.bounding_box(time0, time1) {
                 if !first_box {
                     temp_box = surrounding_box(temp_box, tot_box);
@@ -107,14 +107,14 @@ impl<T: Hittable> Hittable for Translate<T> {
         hit_rec
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
         if let Some(output_box) = self.hittable.bounding_box(time0, time1) {
-            return Some(AABB::new(
+            return Some(AxisAlignedBoundingBox::new(
                 output_box.min + self.offset,
                 output_box.max + self.offset,
             ));
         }
-        return None;
+        None
     }
 }
 
@@ -122,7 +122,7 @@ pub struct RotateY<T: Hittable> {
     hittable: T,
     sin_theta: f64,
     cos_theta: f64,
-    bbox: Option<AABB>,
+    bbox: Option<AxisAlignedBoundingBox>,
 }
 
 impl<T: Hittable> RotateY<T> {
@@ -155,7 +155,7 @@ impl<T: Hittable> RotateY<T> {
                     }
                 }
 
-                Some(AABB::new(min, max))
+                Some(AxisAlignedBoundingBox::new(min, max))
             }
 
             None => None,
@@ -206,7 +206,7 @@ impl<T: Hittable> Hittable for RotateY<T> {
         }
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         self.bbox
     }
 }
@@ -276,7 +276,7 @@ impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
         }
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
         self.boundary.bounding_box(time0, time1)
     }
 }

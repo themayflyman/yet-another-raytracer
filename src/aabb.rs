@@ -3,14 +3,14 @@ use crate::vec3::Vec3;
 use std::mem::swap;
 
 #[derive(Default, Clone, Copy)]
-pub struct AABB {
+pub struct AxisAlignedBoundingBox {
     pub min: Vec3,
     pub max: Vec3,
 }
 
-impl AABB {
-    pub fn new(min: Vec3, max: Vec3) -> AABB {
-        AABB { min, max }
+impl AxisAlignedBoundingBox {
+    pub fn new(min: Vec3, max: Vec3) -> AxisAlignedBoundingBox {
+        AxisAlignedBoundingBox { min, max }
     }
 
     pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> bool {
@@ -30,11 +30,11 @@ impl AABB {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
-pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
+pub fn surrounding_box(box0: AxisAlignedBoundingBox, box1: AxisAlignedBoundingBox) -> AxisAlignedBoundingBox {
     let small: Vec3 = Vec3::new(
         f64::min(box0.min.x(), box1.min.x()),
         f64::min(box0.min.y(), box1.min.y()),
@@ -45,5 +45,5 @@ pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
         f64::max(box0.max.y(), box1.max.y()),
         f64::max(box0.max.z(), box1.max.z()),
     );
-    return AABB::new(small, big);
+    AxisAlignedBoundingBox::new(small, big)
 }

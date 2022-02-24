@@ -1,6 +1,5 @@
 use rand::{random, Rng};
 
-use crate::camera::degrees_to_radians;
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::texture::Texture;
@@ -13,14 +12,14 @@ pub struct Scatter {
 }
 
 pub trait Material: Send + Sync {
-    fn scatter(&self, ray_in: &Ray, hit: &HitRecord) -> Scatter {
+    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
         Scatter {
             color: Vec3::default(),
             ray: None,
         }
     }
     fn emitted(&self, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
-        return Vec3::default();
+        Vec3::default()
     }
 }
 
@@ -58,7 +57,7 @@ pub struct Metal {
 
 impl Metal {
     pub fn new(albedo: Vec3, fuzz: f64) -> Metal {
-        return Metal { albedo, fuzz };
+        Metal { albedo, fuzz }
     }
 }
 
@@ -106,9 +105,9 @@ pub struct Dielectric {
 
 impl Dielectric {
     pub fn new(index_of_refraction: f64) -> Dielectric {
-        return Dielectric {
+        Dielectric {
             index_of_refraction,
-        };
+        }
     }
 }
 
@@ -127,29 +126,29 @@ impl Material for Dielectric {
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
 
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
-            return Scatter {
+            Scatter {
                 color: Vec3::new(1.0, 1.0, 1.0),
                 ray: Some(Ray::new(
                     rec.p,
                     reflect(unit_direction, rec.normal),
                     _r_in.time(),
                 )),
-            };
+            }
         } else {
-            return Scatter {
+            Scatter {
                 color: Vec3::new(1.0, 1.0, 1.0),
                 ray: Some(Ray::new(
                     rec.p,
                     refract(unit_direction, rec.normal, refraction_ratio),
                     _r_in.time(),
                 )),
-            };
+            }
         }
     }
 }
 
 pub fn random_in_unit_vector() -> Vec3 {
-    return random_in_unit_sphere().unit_vector();
+    random_in_unit_sphere().unit_vector()
 }
 
 pub fn random_in_unit_sphere() -> Vec3 {
@@ -170,12 +169,13 @@ pub fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
+#[allow(dead_code)]
 pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
     let in_unit_sphere = random_in_unit_sphere();
     if in_unit_sphere.dot(normal) > 0.0 {
-        return in_unit_sphere;
+        in_unit_sphere
     } else {
-        return -in_unit_sphere;
+        -in_unit_sphere
     }
 }
 
@@ -192,14 +192,14 @@ impl<T: Texture> DiffuseLight<T> {
 
 impl<T: Texture> Material for DiffuseLight<T> {
     fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
-        return Scatter {
+        Scatter {
             color: Vec3::default(),
             ray: None,
-        };
+        }
     }
 
     fn emitted(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
-        return self.emit.value(u, v, p);
+        self.emit.value(u, v, p)
     }
 }
 
@@ -216,9 +216,9 @@ impl<T: Texture> Isotropic<T> {
 
 impl<T: Texture> Material for Isotropic<T> {
     fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
-        return Scatter {
+        Scatter {
             color: self.albedo.value(_hit.u, _hit.v, _hit.p),
             ray: Some(Ray::new(_hit.p, random_in_unit_sphere(), _ray_in.time())),
-        };
+        }
     }
 }

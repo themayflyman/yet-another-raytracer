@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -76,11 +76,11 @@ impl<M: Material> Hittable for StillSphere<M> {
         })
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        return Some(AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        Some(AxisAlignedBoundingBox::new(
             self.center - Vec3::new(self.radius, self.radius, self.radius),
             self.center + Vec3::new(self.radius, self.radius, self.radius),
-        ));
+        ))
     }
 }
 
@@ -163,16 +163,16 @@ impl<M: Material> Hittable for MovingSphere<M> {
         })
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
-        let box0: AABB = AABB::new(
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+        let box0: AxisAlignedBoundingBox = AxisAlignedBoundingBox::new(
             self.center(time0) - Vec3::new(self.radius, self.radius, self.radius),
             self.center(time0) + Vec3::new(self.radius, self.radius, self.radius),
         );
-        let box1: AABB = AABB::new(
+        let box1: AxisAlignedBoundingBox = AxisAlignedBoundingBox::new(
             self.center(time1) - Vec3::new(self.radius, self.radius, self.radius),
             self.center(time1) + Vec3::new(self.radius, self.radius, self.radius),
         );
-        return Some(surrounding_box(box0, box1));
+        Some(surrounding_box(box0, box1))
     }
 }
 

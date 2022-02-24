@@ -1,4 +1,4 @@
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::AxisAlignedBoundingBox;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -28,8 +28,8 @@ impl<M: Material> XYRect<M> {
 }
 
 impl<M: Material> Hittable for XYRect<M> {
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        let outputbox = AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        let outputbox = AxisAlignedBoundingBox::new(
             Vec3::new(self.x0, self.y0, self.k - 0.0001),
             Vec3::new(self.x1, self.y1, self.k + 0.0001),
         );
@@ -62,7 +62,7 @@ impl<M: Material> Hittable for XYRect<M> {
             front_face = false;
         }
 
-        return Some(HitRecord {
+        Some(HitRecord {
             u,
             v,
             t,
@@ -70,7 +70,7 @@ impl<M: Material> Hittable for XYRect<M> {
             normal,
             front_face,
             material: &self.material,
-        });
+        })
     }
 }
 
@@ -98,8 +98,8 @@ impl<M: Material> XZRect<M> {
 }
 
 impl<M: Material> Hittable for XZRect<M> {
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        let outputbox = AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        let outputbox = AxisAlignedBoundingBox::new(
             Vec3::new(self.x0, self.k - 0.0001, self.z0),
             Vec3::new(self.x1, self.k + 0.0001, self.z1),
         );
@@ -132,7 +132,7 @@ impl<M: Material> Hittable for XZRect<M> {
             front_face = false;
         }
 
-        return Some(HitRecord {
+        Some(HitRecord {
             u,
             v,
             t,
@@ -140,7 +140,7 @@ impl<M: Material> Hittable for XZRect<M> {
             normal,
             front_face,
             material: &self.material,
-        });
+        })
     }
 }
 
@@ -168,8 +168,8 @@ impl<M: Material> YZRect<M> {
 }
 
 impl<M: Material> Hittable for YZRect<M> {
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        let outputbox = AABB::new(
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        let outputbox = AxisAlignedBoundingBox::new(
             Vec3::new(self.k - 0.0001, self.y0, self.z0),
             Vec3::new(self.k + 0.0001, self.y1, self.z1),
         );
@@ -202,7 +202,7 @@ impl<M: Material> Hittable for YZRect<M> {
             front_face = false;
         }
 
-        return Some(HitRecord {
+        Some(HitRecord {
             u,
             v,
             t,
@@ -210,6 +210,6 @@ impl<M: Material> Hittable for YZRect<M> {
             normal,
             front_face,
             material: &self.material,
-        });
+        })
     }
 }
