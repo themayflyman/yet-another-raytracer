@@ -104,3 +104,51 @@ impl Hittable for BVHNode {
         Some(self.aabb_box)
     }
 }
+
+pub struct BVHNodeStatic<L: Hittable, R: Hittable> {
+    pub left: Arc<L>,
+    pub right: Arc<R>,
+    pub aabb_box: AxisAlignedBoundingBox,
+}
+
+impl<L: Hittable, R: Hittable> BVHNodeStatic<L, R> {
+    pub fn construct(left: Arc<L>, right: Arc<R>) -> Self {
+        let aabb_box = AxisAlignedBoundingBox::surrounding_box(
+            left.bounding_box(0.0, 1.0).as_ref().unwrap(),
+            right.bounding_box(0.0, 1.0).as_ref().unwrap(),
+        );
+        Self {
+            left,
+            right,
+            aabb_box,
+        }
+    }
+}
+
+impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        match self.aabb_box.hit(ray, t_min, t_max) {
+            false => None,
+            true => {
+                let hit_left = self.left.hit(ray, t_min, t_max);
+                let hit_right = self.right.hit(ray, t_min, t_max);
+                match (hit_left, hit_right) {
+                    (None, None) => None,
+                    (None, Some(hit_rec)) => Some(hit_rec),
+                    (Some(hit_rec), None) => Some(hit_rec),
+                    (Some(hit_left), Some(hit_right)) => {
+                        if hit_left.t < hit_right.t {
+                            Some(hit_left)
+                        } else {
+                            Some(hit_right)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+        Some(self.aabb_box)
+    }
+}

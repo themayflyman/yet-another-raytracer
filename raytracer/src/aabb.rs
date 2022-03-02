@@ -9,8 +9,8 @@ pub struct AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
-    pub fn new(min: Vec3, max: Vec3) -> AxisAlignedBoundingBox {
-        AxisAlignedBoundingBox { min, max }
+    pub fn new(min: Vec3, max: Vec3) -> Self {
+        Self { min, max }
     }
 
     pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> bool {
@@ -32,9 +32,26 @@ impl AxisAlignedBoundingBox {
         }
         true
     }
+
+    pub fn surrounding_box(box0: &AxisAlignedBoundingBox, box1: &AxisAlignedBoundingBox) -> Self {
+        let small: Vec3 = Vec3::new(
+            f64::min(box0.min.x(), box1.min.x()),
+            f64::min(box0.min.y(), box1.min.y()),
+            f64::min(box0.min.z(), box1.min.z()),
+        );
+        let big: Vec3 = Vec3::new(
+            f64::max(box0.max.x(), box1.max.x()),
+            f64::max(box0.max.y(), box1.max.y()),
+            f64::max(box0.max.z(), box1.max.z()),
+        );
+        Self::new(small, big)
+    }
 }
 
-pub fn surrounding_box(box0: AxisAlignedBoundingBox, box1: AxisAlignedBoundingBox) -> AxisAlignedBoundingBox {
+pub fn surrounding_box(
+    box0: AxisAlignedBoundingBox,
+    box1: AxisAlignedBoundingBox,
+) -> AxisAlignedBoundingBox {
     let small: Vec3 = Vec3::new(
         f64::min(box0.min.x(), box1.min.x()),
         f64::min(box0.min.y(), box1.min.y()),

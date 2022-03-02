@@ -156,8 +156,7 @@ impl Perlin {
                 for (di, i_item) in c.iter_mut().enumerate() {
                     for (dj, ij_item) in i_item.iter_mut().enumerate() {
                         for (dk, ijk_item) in ij_item.iter_mut().enumerate() {
-                            *ijk_item = self.ranvec[(self.perm_x
-                                [((i + di as i64) & 255) as usize]
+                            *ijk_item = self.ranvec[(self.perm_x[((i + di as i64) & 255) as usize]
                                 ^ self.perm_y[((j + dj as i64) & 255) as usize]
                                 ^ self.perm_z[((k + dk as i64) & 255) as usize])
                                 as usize]
@@ -166,10 +165,6 @@ impl Perlin {
                 }
 
                 Self::perlin_interp(c, u, v, w)
-            }
-
-            _ => {
-                panic!("No matched nosie type");
             }
         }
     }

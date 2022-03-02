@@ -1,0 +1,12 @@
+[package]
+name = "raytracer"
+version = "0.1.0"
+authors = ["XuZiWei <xuziwei100@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rand = "0.3" 
+image = "0.23.14"
+threadpool = "1.8.1"
+indicatif = "0.16.2"
+raytracer_codegen = { path = "../raytracer_codegen" }

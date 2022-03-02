@@ -31,9 +31,7 @@ pub struct HittableList {
 impl HittableList {
     pub fn new() -> Self {
         let objects: Vec<Arc<dyn Hittable>> = Vec::new();
-        Self {
-            objects,
-        }
+        Self { objects }
     }
 
     pub fn add_object(&mut self, object: Arc<dyn Hittable>) {
@@ -84,12 +82,12 @@ impl Hittable for HittableList {
 }
 
 pub struct Translate<T: Hittable> {
-    hittable: T,
+    hittable: Arc<T>,
     offset: Vec3,
 }
 
 impl<T: Hittable> Translate<T> {
-    pub fn new(hittable: T, offset: Vec3) -> Self {
+    pub fn new(hittable: Arc<T>, offset: Vec3) -> Self {
         Self { hittable, offset }
     }
 }
@@ -119,14 +117,14 @@ impl<T: Hittable> Hittable for Translate<T> {
 }
 
 pub struct RotateY<T: Hittable> {
-    hittable: T,
+    hittable: Arc<T>,
     sin_theta: f64,
     cos_theta: f64,
     bbox: Option<AxisAlignedBoundingBox>,
 }
 
 impl<T: Hittable> RotateY<T> {
-    pub fn new(hittable: T, angle: f64) -> Self {
+    pub fn new(hittable: Arc<T>, angle: f64) -> Self {
         let radians = degrees_to_radians(angle);
         let sin_theta = f64::sin(radians);
         let cos_theta = f64::cos(radians);
