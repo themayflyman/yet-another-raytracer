@@ -138,7 +138,7 @@ pub fn two_perlin_spheres() -> HittableList {
 pub fn earth() -> HittableList {
     let mut objects = HittableList::new();
 
-    let earth_texture = ImageTexture::new("earthmap.jpg").unwrap();
+    let earth_texture = ImageTexture::new("input/earthmap.jpg").unwrap();
     let earth_surface = Lambertian::new(earth_texture);
     let global = StillSphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, earth_surface);
     objects.add_object(Arc::new(global));

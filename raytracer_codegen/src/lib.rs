@@ -193,7 +193,7 @@ pub fn make_static_the_next_week_final_scene(_item: proc_macro::TokenStream) -> 
                 SolidColor::new(Vec3::new(1.0, 1.0, 1.0)),
             )));
 
-            let emat = Lambertian::new(ImageTexture::new("earthmap.jpg").unwrap());
+            let emat = Lambertian::new(ImageTexture::new("input/earthmap.jpg").unwrap());
             objects.add_object(Arc::new(StillSphere::new(
                 Vec3::new(400.0, 200.0, 400.0),
                 100.0,

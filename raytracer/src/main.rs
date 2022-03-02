@@ -311,5 +311,5 @@ fn main() {
         HumanDuration(start_time.elapsed())
     );
 
-    img.save(filename).unwrap();
+    img.save(format!("output/{}", filename)).unwrap();
 }
