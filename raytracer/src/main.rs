@@ -4,7 +4,7 @@ use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::time;
 
-use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 
 use camera::Camera;
 use hittable::{Hittable, HittableList};
@@ -306,9 +306,9 @@ fn main() {
     bar.finish_and_clear();
 
     println!(
-        "{} rendered in {:.2?}",
+        "{} rendered in {} seconds",
         filename,
-        HumanDuration(start_time.elapsed())
+        start_time.elapsed().as_secs()
     );
 
     img.save(format!("output/{}", filename)).unwrap();
