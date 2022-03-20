@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::aarect::{XYRect, XZRect, YZRect};
 use crate::bvh::{BVHNode, BVHNodeStatic};
 
-use crate::hittable::HittableList;
+use crate::hittable::{FlipFace, HittableList};
 use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use crate::rand::Rng;
 
@@ -176,9 +176,9 @@ pub fn cornell_box() -> HittableList {
 
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
-    objects.add_object(Arc::new(XZRect::new(
+    objects.add_object(Arc::new(FlipFace::new(Arc::new(XZRect::new(
         213.0, 343.0, 227.0, 332.0, 554.0, light,
-    )));
+    )))));
     objects.add_object(Arc::new(XZRect::new(
         0.0,
         555.0,
@@ -209,26 +209,33 @@ pub fn cornell_box() -> HittableList {
             Arc::new(BoxEntity::new(
                 Vec3::new(0.0, 0.0, 0.0),
                 Vec3::new(165.0, 330.0, 165.0),
-                white.clone(),
+                white,
             )),
             15.0,
         )),
         Vec3::new(265.0, 0.0, 295.0),
     ));
-    let box2 = Arc::new(Translate::new(
-        Arc::new(RotateY::new(
-            Arc::new(BoxEntity::new(
-                Vec3::new(0.0, 0.0, 0.0),
-                Vec3::new(165.0, 165.0, 165.0),
-                white,
-            )),
-            -18.0,
-        )),
-        Vec3::new(130.0, 0.0, 65.0),
-    ));
-
     objects.add_object(box1);
-    objects.add_object(box2);
+
+    // let box2 = Arc::new(Translate::new(
+    //     Arc::new(RotateY::new(
+    //         Arc::new(BoxEntity::new(
+    //             Vec3::new(0.0, 0.0, 0.0),
+    //             Vec3::new(165.0, 165.0, 165.0),
+    //             white,
+    //         )),
+    //         -18.0,
+    //     )),
+    //     Vec3::new(130.0, 0.0, 65.0),
+    // ));
+    // objects.add_object(box2);
+
+    let glass = Dielectric::new(1.5);
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(190.0, 90.0, 190.0),
+        90.0,
+        glass,
+    )));
 
     objects
 }
@@ -243,9 +250,9 @@ pub fn cornell_box_smoke() -> HittableList {
 
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
-    objects.add_object(Arc::new(XZRect::new(
+    objects.add_object(Arc::new(FlipFace::new(Arc::new(XZRect::new(
         113.0, 443.0, 127.0, 432.0, 554.0, light,
-    )));
+    )))));
     objects.add_object(Arc::new(XZRect::new(
         0.0,
         555.0,

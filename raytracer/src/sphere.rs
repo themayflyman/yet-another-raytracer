@@ -2,10 +2,23 @@ use std::f64::consts::PI;
 
 use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::material::Material;
+use crate::onb::Onb;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
 use super::hittable::{HitRecord, Hittable};
+
+fn random_to_sphere(radius: f64, distance_squared: f64) -> Vec3 {
+    let r1 = rand::random::<f64>();
+    let r2 = rand::random::<f64>();
+    let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
+
+    let phi = 2.0 * PI * r1;
+    let x = phi.cos() * (1.0 - z * z).sqrt();
+    let y = phi.sin() * (1.0 - z * z).sqrt();
+
+    Vec3::new(x, y, z)
+}
 
 pub struct StillSphere<M: Material> {
     pub center: Vec3,
@@ -81,6 +94,27 @@ impl<M: Material> Hittable for StillSphere<M> {
             self.center - Vec3::new(self.radius, self.radius, self.radius),
             self.center + Vec3::new(self.radius, self.radius, self.radius),
         ))
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        if let Some(_rec) = self.hit(&Ray::new(origin, direction, 0.0), 0.001, f64::INFINITY) {
+            let cos_theta_max = (1.0
+                - self.radius() * self.radius() / (self.center() - origin).length_squared())
+            .sqrt();
+            let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+
+            1.0 / solid_angle
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        let direction = self.center() - origin;
+        let distance_squared = direction.length_squared();
+        let uvw = Onb::build_from_w(direction);
+
+        uvw.local(random_to_sphere(self.radius(), distance_squared))
     }
 }
 

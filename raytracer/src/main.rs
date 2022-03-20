@@ -15,6 +15,10 @@ use ray::Ray;
 use scenes::*;
 use threadpool::ThreadPool;
 use vec3::Vec3;
+use pdf::{HittablePDF, MixurePDF, Pdf};
+use aarect::XZRect;
+use material::NoMaterial;
+use sphere::StillSphere;
 
 mod aabb;
 mod aarect;
@@ -23,6 +27,8 @@ mod bvh;
 mod camera;
 mod hittable;
 mod material;
+mod onb;
+mod pdf;
 mod ray;
 mod scenes;
 mod sphere;
@@ -59,22 +65,39 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     }
 }
 
-fn ray_color(r: &Ray, background: Vec3, world: &HittableList, depth: usize) -> Vec3 {
+fn ray_color(
+    r: &Ray,
+    background: Vec3,
+    world: &HittableList,
+    lights: Arc<HittableList>,
+    depth: usize,
+) -> Vec3 {
     if depth == 0 {
         return Vec3::default();
     }
 
     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
-        let scattered = rec.material.scatter(r, &rec);
-        let mut emitted = rec.material.emitted(rec.u, rec.v, rec.p);
+        let emitted = rec.material.emitted(&rec, rec.u, rec.v, rec.p);
 
-        if rec.normal.dot(&r.direction()) >= 0.0 {
-            emitted = Vec3::default();
-        }
+        if let Some(scattered) = rec.material.scatter(r, &rec) {
+            if let Some(scattered_ray) = scattered.ray {
+                return scattered.color
+                    * ray_color(&scattered_ray, background, world, lights, depth - 1);
+            }
 
-        if let Some(scattered_ray) = scattered.ray {
+            if scattered.pdf.is_none() {
+                panic!("Pdf not provided")
+            }
+
+            let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+            let mixure_pdf = MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap());
+            let s = Ray::new(rec.p, mixure_pdf.generate(), r.time());
+            let pdf_val = mixure_pdf.value(s.direction());
             return emitted
-                + scattered.color * ray_color(&scattered_ray, background, world, depth - 1);
+                + scattered.color
+                    * rec.material.scatter_pdf(r, &rec, &s)
+                    * ray_color(&s, background, world, lights, depth - 1)
+                    / pdf_val;
         } else {
             return emitted;
         }
@@ -92,6 +115,7 @@ fn main() {
 
     // World
     let world: Arc<HittableList>;
+    let mut lights: HittableList = HittableList::new();
     let lookfrom: Vec3;
     let lookat: Vec3;
     let vfov: f64;
@@ -100,7 +124,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 9;
+    let scene = 6;
 
     let filename = match scene {
         1 => {
@@ -157,10 +181,18 @@ fn main() {
 
         6 => {
             world = Arc::new(cornell_box());
+            lights.add_object(Arc::new(XZRect::new(
+                213.0, 343.0, 227.0, 332.0, 554.0, NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(190.0, 90.0, 190.0),
+                90.0,
+                NoMaterial,
+            )));
             aspect_ratio = 1.0;
             image_width = 600;
             image_height = 600;
-            samples_per_pixel = 200;
+            samples_per_pixel = 1000;
             background = Vec3::default();
             lookfrom = Vec3::new(278.0, 278.0, -800.0);
             lookat = Vec3::new(278.0, 278.0, 0.0);
@@ -239,6 +271,8 @@ fn main() {
     let n_jobs = block_col * block_row;
     let pool = ThreadPool::new(n_workers);
 
+    let l = Arc::new(lights);
+
     let start_time = time::Instant::now();
 
     let (tx, rx) = channel();
@@ -248,6 +282,7 @@ fn main() {
             let tx = tx.clone();
             let camera = camera.clone();
             let world = world.clone();
+            let lights = l.clone();
             let crop_x = image_width * col / block_col;
             let crop_y = image_height * row / block_row;
             let crop_width = image_width / block_col;
@@ -265,13 +300,32 @@ fn main() {
                         let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
                         let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
                         let r: Ray = camera.get_ray(u, v);
-                        pixel_color = pixel_color + ray_color(&r, background, &world, max_depth);
+                        pixel_color = pixel_color
+                            + ray_color(&r, background, &world, lights.clone(), max_depth);
                     }
 
+                    let r = if pixel_color.r().is_nan() {
+                        0.0
+                    } else {
+                        pixel_color.r()
+                    };
+
+                    let g = if pixel_color.g().is_nan() {
+                        0.0
+                    } else {
+                        pixel_color.g()
+                    };
+
+                    let b = if pixel_color.b().is_nan() {
+                        0.0
+                    } else {
+                        pixel_color.b()
+                    };
+
                     *pixel = image::Rgba([
-                        (256_f64 * clamp((pixel_color.r() * scale).sqrt(), 0.0, 0.999)) as u8,
-                        (256_f64 * clamp((pixel_color.g() * scale).sqrt(), 0.0, 0.999)) as u8,
-                        (256_f64 * clamp((pixel_color.b() * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256_f64 * clamp((r * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256_f64 * clamp((g * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256_f64 * clamp((b * scale).sqrt(), 0.0, 0.999)) as u8,
                         255,
                     ]);
                 }

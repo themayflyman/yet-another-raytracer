@@ -12,6 +12,14 @@ pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;
+
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
+        0.0
+    }
+
+    fn random(&self, _origin: Vec3) -> Vec3 {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }
 
 pub struct HitRecord<'a> {
@@ -78,6 +86,21 @@ impl Hittable for HittableList {
         }
 
         Some(temp_box)
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+
+        return self
+            .objects
+            .iter()
+            .map(|object| weight * object.pdf_value(origin, direction))
+            .sum();
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        self.objects[rand::thread_rng().gen_range::<usize>(0, self.objects.len() - 1)]
+            .random(origin)
     }
 }
 
@@ -276,5 +299,33 @@ impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
         self.boundary.bounding_box(time0, time1)
+    }
+}
+
+pub struct FlipFace<T: Hittable> {
+    hittable: Arc<T>,
+}
+
+impl<T: Hittable> FlipFace<T> {
+    pub fn new(hittable: Arc<T>) -> Self {
+        Self { hittable }
+    }
+}
+
+impl<T: Hittable> Hittable for FlipFace<T> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.hittable.hit(ray, t_min, t_max).map(|rec| HitRecord {
+            u: rec.u,
+            v: rec.v,
+            t: rec.t,
+            p: rec.p,
+            normal: rec.normal,
+            front_face: !rec.front_face,
+            material: rec.material,
+        })
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+        self.hittable.bounding_box(time0, time1)
     }
 }

@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::aabb::AxisAlignedBoundingBox;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
@@ -141,6 +143,27 @@ impl<M: Material> Hittable for XZRect<M> {
             front_face,
             material: &self.material,
         })
+    }
+
+    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+        if let Some(rec) = self.hit(&Ray::new(origin, direction, 0.0), 0.001, f64::INFINITY) {
+            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+            let distance_squared = rec.t * rec.t * direction.length_squared();
+            let cosine = direction.dot(&rec.normal).abs() / direction.length();
+
+            distance_squared / (cosine * area)
+        } else {
+            0.0
+        }
+    }
+
+    fn random(&self, origin: Vec3) -> Vec3 {
+        let random_point = Vec3::new(
+            rand::thread_rng().gen_range::<f64>(self.x0, self.x1),
+            self.k,
+            rand::thread_rng().gen_range::<f64>(self.z0, self.z1),
+        );
+        random_point - origin
     }
 }
 

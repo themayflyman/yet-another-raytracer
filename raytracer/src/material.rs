@@ -1,25 +1,31 @@
+use std::f64::consts::PI;
+use std::sync::Arc;
+
 use rand::{random, Rng};
 
 use crate::hittable::HitRecord;
+use crate::pdf::{CosinePDF, Pdf};
 use crate::ray::Ray;
 use crate::texture::Texture;
 use crate::vec3::Vec3;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Scatter {
     pub color: Vec3,
     pub ray: Option<Ray>,
+    pub is_specular: bool,
+    pub pdf: Option<Arc<dyn Pdf>>,
 }
 
 pub trait Material: Send + Sync {
-    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
-        Scatter {
-            color: Vec3::default(),
-            ray: None,
-        }
+    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Option<Scatter> {
+        None
     }
-    fn emitted(&self, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
+    fn emitted(&self, _rec: &HitRecord, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
         Vec3::default()
+    }
+    fn scatter_pdf(&self, _ray_in: &Ray, _hit: &HitRecord, _scattered: &Ray) -> f64 {
+        0.0
     }
 }
 
@@ -35,16 +41,20 @@ impl<T: Texture> Lambertian<T> {
 }
 
 impl<T: Texture> Material for Lambertian<T> {
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
-        let mut scatter_direction = rec.normal + random_in_unit_vector();
-
-        if scatter_direction.near_zero() {
-            scatter_direction = rec.normal;
-        }
-
-        Scatter {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        Some(Scatter {
             color: self.albedo.value(rec.u, rec.v, rec.p),
-            ray: Some(Ray::new(rec.p, scatter_direction, _r_in.time())),
+            ray: None,
+            is_specular: false,
+            pdf: Some(Arc::new(CosinePDF::new(rec.normal))),
+        })
+    }
+    fn scatter_pdf(&self, _ray_in: &Ray, hit: &HitRecord, scattered: &Ray) -> f64 {
+        let cosine = hit.normal.dot(&scattered.direction().unit_vector());
+        if cosine < 0.0 {
+            0.0
+        } else {
+            cosine / PI
         }
     }
 }
@@ -66,7 +76,7 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 }
 
 impl Material for Metal {
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let reflected = reflect(_r_in.direction().unit_vector(), rec.normal);
         let scattered = Ray::new(
             rec.p,
@@ -74,14 +84,16 @@ impl Material for Metal {
             _r_in.time(),
         );
 
-        Scatter {
+        Some(Scatter {
             color: self.albedo,
             ray: if scattered.direction().dot(&rec.normal) <= 0.0 {
                 None
             } else {
                 Some(scattered)
             },
-        }
+            is_specular: true,
+            pdf: None,
+        })
     }
 }
 
@@ -112,7 +124,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Scatter {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let refraction_ratio = if rec.front_face {
             1.0 / self.index_of_refraction
         } else {
@@ -126,27 +138,32 @@ impl Material for Dielectric {
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
 
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
-            Scatter {
+            Some(Scatter {
                 color: Vec3::new(1.0, 1.0, 1.0),
                 ray: Some(Ray::new(
                     rec.p,
                     reflect(unit_direction, rec.normal),
                     _r_in.time(),
                 )),
-            }
+                is_specular: true,
+                pdf: None,
+            })
         } else {
-            Scatter {
+            Some(Scatter {
                 color: Vec3::new(1.0, 1.0, 1.0),
                 ray: Some(Ray::new(
                     rec.p,
                     refract(unit_direction, rec.normal, refraction_ratio),
                     _r_in.time(),
                 )),
-            }
+                is_specular: true,
+                pdf: None,
+            })
         }
     }
 }
 
+#[allow(dead_code)]
 pub fn random_in_unit_vector() -> Vec3 {
     random_in_unit_sphere().unit_vector()
 }
@@ -191,15 +208,12 @@ impl<T: Texture> DiffuseLight<T> {
 }
 
 impl<T: Texture> Material for DiffuseLight<T> {
-    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
-        Scatter {
-            color: Vec3::default(),
-            ray: None,
+    fn emitted(&self, rec: &HitRecord, u: f64, v: f64, p: Vec3) -> Vec3 {
+        if rec.front_face {
+            self.emit.value(u, v, p)
+        } else {
+            Vec3::default()
         }
-    }
-
-    fn emitted(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
-        self.emit.value(u, v, p)
     }
 }
 
@@ -215,10 +229,17 @@ impl<T: Texture> Isotropic<T> {
 }
 
 impl<T: Texture> Material for Isotropic<T> {
-    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Scatter {
-        Scatter {
+    fn scatter(&self, _ray_in: &Ray, _hit: &HitRecord) -> Option<Scatter> {
+        Some(Scatter {
             color: self.albedo.value(_hit.u, _hit.v, _hit.p),
             ray: Some(Ray::new(_hit.p, random_in_unit_sphere(), _ray_in.time())),
-        }
+            is_specular: false,
+            pdf: None,
+        })
     }
 }
+
+#[derive(Clone)]
+pub struct NoMaterial;
+
+impl Material for NoMaterial {}
