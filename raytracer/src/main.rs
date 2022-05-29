@@ -113,8 +113,8 @@ fn ray_color(
 
 fn main() {
     // Image
-    let mut aspect_ratio: f64 = 16.0 / 9.0;
-    let mut image_width: u32 = 400;
+    let mut aspect_ratio: f64 = 3.0 / 2.0;
+    let mut image_width: u32 = 1200;
     let mut image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let max_depth: usize = 50;
 
@@ -129,7 +129,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 6;
+    let scene = 1;
 
     let filename = match scene {
         1 => {
@@ -139,6 +139,7 @@ fn main() {
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
             aperture = 0.1;
+            samples_per_pixel = 1000;
 
             "random_scene.png"
         }

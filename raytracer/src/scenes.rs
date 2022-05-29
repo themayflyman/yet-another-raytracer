@@ -22,8 +22,8 @@ make_static_the_next_week_final_scene! {}
 pub fn random_scene() -> HittableList {
     let mut world: HittableList = HittableList::new();
 
-    let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
-    let group_material = Lambertian::new(checker);
+    // let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
+    let group_material = Lambertian::new(SolidColor::new(Vec3::new(0.5, 0.5, 0.5)));
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -48,12 +48,12 @@ pub fn random_scene() -> HittableList {
                         rng.gen_range(-1.0, 1.0),
                     ));
                     let sphere_material = Lambertian::new(albedo);
-                    let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
-                    world.add_object(Arc::new(MovingSphere::new(
+                    // let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
+                    world.add_object(Arc::new(StillSphere::new(
                         center,
-                        center2,
-                        0.0,
-                        1.0,
+                        // center2,
+                        // 0.0,
+                        // 1.0,
                         0.2,
                         sphere_material,
                     )));
@@ -83,13 +83,13 @@ pub fn random_scene() -> HittableList {
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Dielectric::new(1.5),
+        Lambertian::new(SolidColor::new(Vec3::new(0.4, 0.2, 0.1))),
     )));
 
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
-        Dielectric::new(1.5),
+        Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0),
     )));
 
     world
