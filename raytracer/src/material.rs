@@ -86,11 +86,7 @@ impl Material for Metal {
 
         Some(Scatter {
             color: self.albedo,
-            ray: if scattered.direction().dot(&rec.normal) <= 0.0 {
-                None
-            } else {
-                Some(scattered)
-            },
+            ray: Some(scattered),
             is_specular: true,
             pdf: None,
         })

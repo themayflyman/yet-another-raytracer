@@ -12,13 +12,13 @@ use hittable::{Hittable, HittableList};
 use rand::Rng;
 use ray::Ray;
 
-use scenes::*;
-use threadpool::ThreadPool;
-use vec3::Vec3;
-use pdf::{HittablePDF, MixurePDF, Pdf};
 use aarect::XZRect;
 use material::NoMaterial;
+use pdf::{HittablePDF, MixurePDF, Pdf};
+use scenes::*;
 use sphere::StillSphere;
+use threadpool::ThreadPool;
+use vec3::Vec3;
 
 mod aabb;
 mod aarect;
@@ -89,8 +89,13 @@ fn ray_color(
                 panic!("Pdf not provided")
             }
 
-            let light_pdf = HittablePDF::new(lights.clone(), rec.p);
-            let mixure_pdf = MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap());
+            let mixure_pdf = if lights.objects.is_empty() {
+                let light_pdf = scattered.pdf.unwrap();
+                MixurePDF::new(light_pdf.clone(), light_pdf)
+            } else {
+                let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+                MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap())
+            };
             let s = Ray::new(rec.p, mixure_pdf.generate(), r.time());
             let pdf_val = mixure_pdf.value(s.direction());
             return emitted

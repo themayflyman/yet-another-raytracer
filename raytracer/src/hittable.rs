@@ -99,8 +99,12 @@ impl Hittable for HittableList {
     }
 
     fn random(&self, origin: Vec3) -> Vec3 {
-        self.objects[rand::thread_rng().gen_range::<usize>(0, self.objects.len() - 1)]
-            .random(origin)
+        if self.objects.is_empty() {
+            return Vec3::new(1.0, 0.0, 0.0);
+        } else {
+            return self.objects[rand::thread_rng().gen_range::<usize>(0, self.objects.len() - 1)]
+                .random(origin);
+        }
     }
 }
 
