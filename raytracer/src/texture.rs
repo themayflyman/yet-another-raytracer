@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::error::Error;
+use std::f64::consts::PI;
 use std::path::Path;
 
 use crate::clamp;
@@ -326,5 +327,36 @@ impl Texture for ImageTexture {
             color_scale * self.data[pixel + 1] as f64,
             color_scale * self.data[pixel + 2] as f64,
         )
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ColorStop {
+    pub color: Vec3,
+    pub stop: f64,
+}
+
+#[derive(Clone)]
+pub struct LinearGradientTexture {
+    color_stops: Vec<ColorStop>,
+}
+
+impl LinearGradientTexture {
+    pub fn new(color_stops: Vec<ColorStop>) -> Self {
+        Self {
+            color_stops,
+        }
+    }
+}
+
+impl Texture for LinearGradientTexture {
+    fn value(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
+        let percent = 1.0 - (1.0 - (v * PI).cos()) / 2.0;
+        let end_color_stop_idx: usize = self.color_stops.iter().position(|&x| x.stop > percent).unwrap();
+        let start_color_stop_idx = end_color_stop_idx - 1;
+        let end_color_stop = self.color_stops[end_color_stop_idx];
+        let start_color_stop = self.color_stops[start_color_stop_idx];
+
+        return start_color_stop.color + (percent - start_color_stop.stop) / (end_color_stop.stop - start_color_stop.stop) * (end_color_stop.color - start_color_stop.color);
     }
 }

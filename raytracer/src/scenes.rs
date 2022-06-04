@@ -12,7 +12,7 @@ use crate::rand::Rng;
 use crate::box_entity::BoxEntity;
 use crate::hittable::{ConstantMedium, RotateY, Translate};
 use crate::sphere::{MovingSphere, StillSphere};
-use crate::texture::{CheckerTexture, NoiseTexture, SolidColor};
+use crate::texture::{CheckerTexture, NoiseTexture, SolidColor, LinearGradientTexture, ColorStop};
 use crate::texture::{ImageTexture, NoiseType};
 use crate::vec3::Vec3;
 use raytracer_codegen::make_static_the_next_week_final_scene;
@@ -129,7 +129,9 @@ pub fn two_perlin_spheres() -> HittableList {
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 2.0, 0.0),
         2.0,
-        Lambertian::new(NoiseTexture::new(NoiseType::Marble, 4.0)),
+        Lambertian::new(LinearGradientTexture::new(
+            vec![ColorStop { color: Vec3::new(1.0, 1.0, 1.0), stop: 0.0 }, ColorStop { color: Vec3::new(0.8, 0.5, 0.3), stop: 0.5 }, ColorStop { color: Vec3::new(0.2, 0.3, 0.1), stop: 1.0 }]
+        )),
     )));
 
     objects

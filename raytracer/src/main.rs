@@ -129,7 +129,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 1;
+    let scene = 3;
 
     let filename = match scene {
         1 => {
@@ -157,7 +157,7 @@ fn main() {
         3 => {
             world = Arc::new(two_perlin_spheres());
             background = Vec3::new(0.7, 0.8, 1.0);
-            lookfrom = Vec3::new(13.0, 2.0, 3.0);
+            lookfrom = Vec3::new(13.0, 2.0, 30.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
 
