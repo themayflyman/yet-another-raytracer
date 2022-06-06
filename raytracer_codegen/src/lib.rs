@@ -149,9 +149,9 @@ pub fn make_static_the_next_week_final_scene(_item: proc_macro::TokenStream) -> 
             let mut objects = HittableList::new();
 
             let light = DiffuseLight::new(SolidColor::new(Vec3::new(7.0, 7.0, 7.0)));
-            objects.add_object(Arc::new(XZRect::new(
+            objects.add_object(Arc::new(FlipFace::new(Arc::new(XZRect::new(
                 123.0, 423.0, 147.0, 412.0, 554.0, light,
-            )));
+            )))));
 
             objects.add_object(#boxes_bvh);
 

@@ -129,7 +129,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 3;
+    let scene = 9;
 
     let filename = match scene {
         1 => {
@@ -223,10 +223,13 @@ fn main() {
 
         8 => {
             world = Arc::new(the_next_week_final_scene());
+            lights.add_object(Arc::new(XZRect::new(
+                123.0, 423.0, 147.0, 412.0, 554.0, NoMaterial,
+            )));
             aspect_ratio = 1.0;
-            image_width = 800;
-            image_height = 800;
-            samples_per_pixel = 10000;
+            image_width = 100;
+            image_height = 100;
+            samples_per_pixel = 1000;
             background = Vec3::default();
             lookfrom = Vec3::new(478.0, 278.0, -600.0);
             lookat = Vec3::new(278.0, 278.0, 0.0);
@@ -237,6 +240,9 @@ fn main() {
 
         9 => {
             world = Arc::new(static_the_next_week_final_scene());
+            lights.add_object(Arc::new(XZRect::new(
+                123.0, 423.0, 147.0, 412.0, 554.0, NoMaterial,
+            )));
             aspect_ratio = 1.0;
             image_width = 800;
             image_height = 800;
@@ -270,7 +276,7 @@ fn main() {
         1.0,
     ));
 
-    let n_workers = 8;
+    let n_workers = 30;
     let mut img = image::RgbaImage::new(image_width as u32, image_height as u32);
     let block_col = 8;
     let block_row = 8;
