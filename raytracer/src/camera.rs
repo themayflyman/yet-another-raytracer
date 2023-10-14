@@ -83,7 +83,7 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, s: f64, t: f64) -> Ray {
+    pub fn get_ray(&self, s: f64, t: f64, wl: f64) -> Ray {
         let mut rng = rand::thread_rng();
 
         let rd: Vec3 = self.lens_radius * random_in_unit_disk();
@@ -93,6 +93,7 @@ impl Camera {
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
             rng.gen_range::<f64>(self.time0, self.time1),
+            wl
         )
     }
 }

@@ -1,48 +1,52 @@
 use std::convert::TryInto;
 use std::error::Error;
-use std::f64::consts::PI;
+// use std::f64::consts::PI;
 use std::path::Path;
 
-use crate::clamp;
+// use crate::clamp;
+use crate::color::{HasReflectance, RGB};
+use crate::hittable::HitRecord;
+use crate::ray::Ray;
 use crate::vec3::Vec3;
 use rand::Rng;
 
 pub trait Texture: Clone + Send + Sync {
-    fn value(&self, u: f64, v: f64, p: Vec3) -> Vec3;
+    // fn value(&self, u: f64, v: f64, p: Vec3) -> RGB;
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64;
 }
 
 #[derive(Clone)]
-pub struct SolidColor {
-    color_value: Vec3,
+pub struct SolidColor<T: HasReflectance> {
+    color_value: T,
 }
 
-impl SolidColor {
-    pub fn new(color_value: Vec3) -> Self {
+impl<T: HasReflectance> SolidColor<T> {
+    pub fn new(color_value: T) -> Self {
         Self { color_value }
     }
 
-    #[allow(dead_code)]
-    pub fn new_from_value(red: f64, green: f64, blue: f64) -> Self {
-        Self {
-            color_value: Vec3::new(red, green, blue),
-        }
-    }
+    // #[allow(dead_code)]
+    // pub fn new_from_value(red: f64, green: f64, blue: f64) -> Self {
+    //     Self {
+    //         color_value: RGB::new(red, green, blue),
+    //     }
+    // }
 }
 
-impl Texture for SolidColor {
-    fn value(&self, _u: f64, _v: f64, _p: Vec3) -> Vec3 {
-        self.color_value
+impl<T: HasReflectance> Texture for SolidColor<T> {
+    fn value(&self, ray_in: &Ray, _hit_record: &HitRecord) -> f64 {
+        return self.color_value.reflect(ray_in.wavelength);
     }
 }
 
 #[derive(Clone)]
-pub struct CheckerTexture {
-    odd: SolidColor,
-    even: SolidColor,
+pub struct CheckerTexture<T: HasReflectance> {
+    odd: SolidColor<T>,
+    even: SolidColor<T>,
 }
 
-impl CheckerTexture {
-    pub fn new(color1: Vec3, color2: Vec3) -> Self {
+impl<T: HasReflectance> CheckerTexture<T> {
+    pub fn new(color1: T, color2: T) -> Self {
         Self {
             odd: SolidColor::new(color1),
             even: SolidColor::new(color2),
@@ -50,19 +54,20 @@ impl CheckerTexture {
     }
 }
 
-impl Texture for CheckerTexture {
-    fn value(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
-        let sines = f64::sin(10.0 * p.x()) * f64::sin(10.0 * p.y()) * f64::sin(10.0 * p.z());
+impl<T: HasReflectance> Texture for CheckerTexture<T> {
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
+        let sines = f64::sin(10.0 * hit_record.p.x())
+            * f64::sin(10.0 * hit_record.p.y())
+            * f64::sin(10.0 * hit_record.p.z());
         if sines < 0.0 {
-            self.odd.value(u, v, p)
+            self.odd.value(ray_in, hit_record)
         } else {
-            self.even.value(u, v, p)
+            self.even.value(ray_in, hit_record)
         }
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)]
+#[derive(Clone)]
 pub enum NoiseType {
     // Unfiltered noise
     Square,
@@ -75,7 +80,7 @@ pub enum NoiseType {
     // Turbulent pattern that resembles a net
     Net,
 }
-
+//
 #[derive(Clone)]
 pub struct Perlin {
     ranfloat: Vec<f64>,
@@ -255,17 +260,27 @@ impl NoiseTexture {
 }
 
 impl Texture for NoiseTexture {
-    fn value(&self, _u: f64, _v: f64, p: Vec3) -> Vec3 {
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
         match self.noise.noise_type {
-            NoiseType::Net => Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(p * self.scale, 7),
-
-            NoiseType::Marble => {
-                Vec3::new(1.0, 1.0, 1.0)
-                    * 0.5
-                    * (1.0 + f64::sin(self.scale * p.z() + 10.0 * self.noise.turb(p, 7)))
+            NoiseType::Net => {
+                RGB::new(1.0, 1.0, 1.0).reflect(ray_in.wavelength)
+                    * self.noise.turb(hit_record.p * self.scale, 7)
             }
 
-            _ => Vec3::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(p * self.scale)),
+            NoiseType::Marble => {
+                RGB::new(1.0, 1.0, 1.0).reflect(ray_in.wavelength)
+                    * 0.5
+                    * (1.0
+                        + f64::sin(
+                            self.scale * hit_record.p.z() + 10.0 * self.noise.turb(hit_record.p, 7),
+                        ))
+            }
+
+            _ => {
+                RGB::new(1.0, 1.0, 1.0).reflect(ray_in.wavelength)
+                    * 0.5
+                    * (1.0 + self.noise.noise(hit_record.p * self.scale))
+            }
         }
     }
 }
@@ -298,15 +313,15 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, u: f64, v: f64, _p: Vec3) -> Vec3 {
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
         // If we have no texture data, then return solid cyan as a debugging aid
         if self.data.is_empty() {
-            return Vec3::new(1.0, 0.0, 1.0);
+            return 1.0;
         }
 
         // Clamp input texture coordinates to [0,1] x [1,0]
-        let uu = clamp(u, 0.0, 1.0);
-        let vv = 1.0 - clamp(v, 0.0, 1.0); // Filp V to image coordinates
+        let uu = hit_record.u.clamp(0.0, 1.0);
+        let vv = 1.0 - hit_record.v.clamp(0.0, 1.0); // Filp V to image coordinates
 
         let mut i = (uu * f64::from(self.width)) as u32;
         let mut j = (vv * f64::from(self.height)) as u32;
@@ -322,41 +337,42 @@ impl Texture for ImageTexture {
         let color_scale = 1.0 / 255.0;
         let pixel = (j * self.bytes_per_scanline + i * self.bytes_per_pixel) as usize;
 
-        Vec3::new(
+        let rgb = RGB::new(
             color_scale * self.data[pixel] as f64,
             color_scale * self.data[pixel + 1] as f64,
             color_scale * self.data[pixel + 2] as f64,
-        )
+        );
+        return rgb.reflect(ray_in.wavelength);
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct ColorStop {
-    pub color: Vec3,
-    pub stop: f64,
-}
-
-#[derive(Clone)]
-pub struct LinearGradientTexture {
-    color_stops: Vec<ColorStop>,
-}
-
-impl LinearGradientTexture {
-    pub fn new(color_stops: Vec<ColorStop>) -> Self {
-        Self {
-            color_stops,
-        }
-    }
-}
-
-impl Texture for LinearGradientTexture {
-    fn value(&self, u: f64, v: f64, p: Vec3) -> Vec3 {
-        let percent = 1.0 - (1.0 - (v * PI).cos()) / 2.0;
-        let end_color_stop_idx: usize = self.color_stops.iter().position(|&x| x.stop > percent).unwrap();
-        let start_color_stop_idx = end_color_stop_idx - 1;
-        let end_color_stop = self.color_stops[end_color_stop_idx];
-        let start_color_stop = self.color_stops[start_color_stop_idx];
-
-        return start_color_stop.color + (percent - start_color_stop.stop) / (end_color_stop.stop - start_color_stop.stop) * (end_color_stop.color - start_color_stop.color);
-    }
-}
+// #[derive(Clone, Copy)]
+// pub struct ColorStop {
+//     pub color: RGB,
+//     pub stop: f64,
+// }
+//
+// #[derive(Clone)]
+// pub struct LinearGradientTexture {
+//     color_stops: Vec<ColorStop>,
+// }
+//
+// impl LinearGradientTexture {
+//     pub fn new(color_stops: Vec<ColorStop>) -> Self {
+//         Self {
+//             color_stops,
+//         }
+//     }
+// }
+//
+// impl Texture for LinearGradientTexture {
+//     fn value(&self, u: f64, v: f64, p: Vec3) -> RGB {
+//         let percent = 1.0 - (1.0 - (v * PI).cos()) / 2.0;
+//         let end_color_stop_idx: usize = self.color_stops.iter().position(|&x| x.stop > percent).unwrap();
+//         let start_color_stop_idx = end_color_stop_idx - 1;
+//         let end_color_stop = self.color_stops[end_color_stop_idx];
+//         let start_color_stop = self.color_stops[start_color_stop_idx];
+//
+//         return start_color_stop.color + (percent - start_color_stop.stop) / (end_color_stop.stop - start_color_stop.stop) * (end_color_stop.color - start_color_stop.color);
+//     }
+// }

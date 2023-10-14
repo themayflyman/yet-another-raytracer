@@ -13,7 +13,7 @@ pub trait Hittable: Send + Sync {
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;
 
-    fn pdf_value(&self, _origin: Vec3, _direction: Vec3) -> f64 {
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _wavelength: f64) -> f64 {
         0.0
     }
 
@@ -88,13 +88,13 @@ impl Hittable for HittableList {
         Some(temp_box)
     }
 
-    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, wavelength: f64) -> f64 {
         let weight = 1.0 / self.objects.len() as f64;
 
         return self
             .objects
             .iter()
-            .map(|object| weight * object.pdf_value(origin, direction))
+            .map(|object| weight * object.pdf_value(origin, direction, wavelength))
             .sum();
     }
 
@@ -124,7 +124,7 @@ impl<T: Hittable> Translate<T> {
 impl<T: Hittable> Hittable for Translate<T> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit_rec: Option<HitRecord> = None;
-        let moved_ray = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time());
+        let moved_ray = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time(), ray.wavelength);
 
         if let Some(mut temp_rec) = self.hittable.hit(&moved_ray, t_min, t_max) {
             temp_rec.p = temp_rec.p + self.offset;
@@ -208,7 +208,7 @@ impl<T: Hittable> Hittable for RotateY<T> {
         direction[0] = self.cos_theta * ray.direction()[0] - self.sin_theta * ray.direction()[2];
         direction[2] = self.sin_theta * ray.direction()[0] + self.cos_theta * ray.direction()[2];
 
-        let rotated_ray = Ray::new(origin, direction, ray.time());
+        let rotated_ray = Ray::new(origin, direction, ray.time(), ray.wavelength);
 
         match self.hittable.hit(&rotated_ray, t_min, t_max) {
             Some(hit_rec) => {

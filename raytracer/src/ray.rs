@@ -5,14 +5,16 @@ pub struct Ray {
     origin: Vec3,    // the ray origin
     direction: Vec3, // the ray direction
     time: f64,
+    pub wavelength: f64
 }
 
 impl Ray {
-    pub fn new(origin: Vec3, direction: Vec3, time: f64) -> Ray {
+    pub fn new(origin: Vec3, direction: Vec3, time: f64, wavelength: f64) -> Ray {
         Ray {
             origin,
             direction,
             time,
+            wavelength
         }
     }
 

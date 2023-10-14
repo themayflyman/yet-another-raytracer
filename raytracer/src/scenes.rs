@@ -3,27 +3,24 @@ extern crate rand;
 use std::sync::Arc;
 
 use crate::aarect::{XYRect, XZRect, YZRect};
-use crate::bvh::{BVHNode, BVHNodeStatic};
-
-use crate::hittable::{FlipFace, HittableList};
+use crate::box_entity::BoxEntity;
+use crate::bvh::BVHNode;
+use crate::color::RGB;
+use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
 use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use crate::rand::Rng;
-
-use crate::box_entity::BoxEntity;
-use crate::hittable::{ConstantMedium, RotateY, Translate};
 use crate::sphere::{MovingSphere, StillSphere};
-use crate::texture::{CheckerTexture, NoiseTexture, SolidColor, LinearGradientTexture, ColorStop};
-use crate::texture::{ImageTexture, NoiseType};
+use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
 use crate::vec3::Vec3;
-use raytracer_codegen::make_static_the_next_week_final_scene;
+// use raytracer_codegen::make_static_the_next_week_final_scene;
 
-make_static_the_next_week_final_scene! {}
+// make_static_the_next_week_final_scene! {}
 
 pub fn random_scene() -> HittableList {
     let mut world: HittableList = HittableList::new();
 
     // let checker = CheckerTexture::new(Vec3::new(0.2, 0.3, 0.1), Vec3::new(0.9, 0.9, 0.9));
-    let group_material = Lambertian::new(SolidColor::new(Vec3::new(0.5, 0.5, 0.5)));
+    let group_material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -42,7 +39,7 @@ pub fn random_scene() -> HittableList {
 
             if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
                 if choose_mat < 0.8 {
-                    let albedo = SolidColor::new(Vec3::new(
+                    let albedo = SolidColor::new(RGB::new(
                         rng.gen_range(-1.0, 1.0),
                         rng.gen_range(-1.0, 1.0),
                         rng.gen_range(-1.0, 1.0),
@@ -58,11 +55,11 @@ pub fn random_scene() -> HittableList {
                         sphere_material,
                     )));
                 } else if choose_mat < 0.95 {
-                    let albedo: Vec3 = Vec3::new(
+                    let albedo = SolidColor::new(RGB::new(
                         rng.gen_range(0.5, 1.0),
                         rng.gen_range(0.5, 1.0),
                         rng.gen_range(0.5, 1.0),
-                    );
+                    ));
                     let fuzz: f64 = rng.gen_range(0.0, 0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
                     world.add_object(Arc::new(StillSphere::new(center, 0.2, sphere_material)));
@@ -83,13 +80,13 @@ pub fn random_scene() -> HittableList {
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
-        Lambertian::new(SolidColor::new(Vec3::new(0.4, 0.2, 0.1))),
+        Lambertian::new(SolidColor::new(RGB::new(0.4, 0.2, 0.1))),
     )));
 
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
-        Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0),
+        Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0),
     )));
 
     world
@@ -102,16 +99,16 @@ pub fn two_spheres() -> HittableList {
         Vec3::new(0.0, -10.0, 0.0),
         10.0,
         Lambertian::new(CheckerTexture::new(
-            Vec3::new(0.2, 0.3, 0.1),
-            Vec3::new(0.9, 0.9, 0.9),
+            RGB::new(0.2, 0.3, 0.1),
+            RGB::new(0.9, 0.9, 0.9),
         )),
     )));
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 10.0, 0.0),
         10.0,
         Lambertian::new(CheckerTexture::new(
-            Vec3::new(0.2, 0.3, 0.1),
-            Vec3::new(0.9, 0.9, 0.9),
+            RGB::new(0.2, 0.3, 0.1),
+            RGB::new(0.9, 0.9, 0.9),
         )),
     )));
 
@@ -129,9 +126,10 @@ pub fn two_perlin_spheres() -> HittableList {
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 2.0, 0.0),
         2.0,
-        Lambertian::new(LinearGradientTexture::new(
-            vec![ColorStop { color: Vec3::new(1.0, 1.0, 1.0), stop: 0.0 }, ColorStop { color: Vec3::new(0.8, 0.5, 0.3), stop: 0.5 }, ColorStop { color: Vec3::new(0.2, 0.3, 0.1), stop: 1.0 }]
-        )),
+        Lambertian::new(NoiseTexture::new(NoiseType::Marble, 4.0)),
+        // Lambertian::new(LinearGradientTexture::new(
+        //     vec![ColorStop { color: Vec3::new(1.0, 1.0, 1.0), stop: 0.0 }, ColorStop { color: Vec3::new(0.8, 0.5, 0.3), stop: 0.5 }, ColorStop { color: Vec3::new(0.2, 0.3, 0.1), stop: 1.0 }]
+        // )),
     )));
 
     objects
@@ -162,7 +160,7 @@ pub fn simple_light() -> HittableList {
         Lambertian::new(NoiseTexture::new(NoiseType::Marble, 4.0)),
     )));
 
-    let difflight = DiffuseLight::new(SolidColor::new(Vec3::new(4.0, 4.0, 4.0)));
+    let difflight = DiffuseLight::new(SolidColor::new(RGB::new(4.0, 4.0, 4.0)));
     objects.add_object(Arc::new(XYRect::new(3.0, 5.0, 1.0, 3.0, -2.0, difflight)));
 
     objects
@@ -171,10 +169,10 @@ pub fn simple_light() -> HittableList {
 pub fn cornell_box() -> HittableList {
     let mut objects = HittableList::new();
 
-    let red = Lambertian::new(SolidColor::new(Vec3::new(0.65, 0.05, 0.05)));
-    let white = Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73)));
-    let green = Lambertian::new(SolidColor::new(Vec3::new(0.12, 0.45, 0.15)));
-    let light = DiffuseLight::new(SolidColor::new(Vec3::new(15.0, 15.0, 15.0)));
+    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColor::new(RGB::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColor::new(RGB::new(0.12, 0.45, 0.15)));
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(15.0, 15.0, 15.0)));
 
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
@@ -245,10 +243,10 @@ pub fn cornell_box() -> HittableList {
 pub fn cornell_box_smoke() -> HittableList {
     let mut objects = HittableList::new();
 
-    let red = Lambertian::new(SolidColor::new(Vec3::new(0.65, 0.05, 0.05)));
-    let white = Lambertian::new(SolidColor::new(Vec3::new(0.73, 0.73, 0.73)));
-    let green = Lambertian::new(SolidColor::new(Vec3::new(0.12, 0.45, 0.15)));
-    let light = DiffuseLight::new(SolidColor::new(Vec3::new(7.0, 7.0, 7.0)));
+    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    let white = Lambertian::new(SolidColor::new(RGB::new(0.73, 0.73, 0.73)));
+    let green = Lambertian::new(SolidColor::new(RGB::new(0.12, 0.45, 0.15)));
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(7.0, 7.0, 7.0)));
 
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
     objects.add_object(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
@@ -293,7 +291,7 @@ pub fn cornell_box_smoke() -> HittableList {
             Vec3::new(265.0, 0.0, 295.0),
         ),
         0.01,
-        SolidColor::new(Vec3::new(0.0, 0.0, 0.0)),
+        SolidColor::new(RGB::new(0.0, 0.0, 0.0)),
     ));
     let box2 = Arc::new(ConstantMedium::new(
         Translate::new(
@@ -308,7 +306,7 @@ pub fn cornell_box_smoke() -> HittableList {
             Vec3::new(130.0, 0.0, 65.0),
         ),
         0.01,
-        SolidColor::new(Vec3::new(1.0, 1.0, 1.0)),
+        SolidColor::new(RGB::new(1.0, 1.0, 1.0)),
     ));
 
     objects.add_object(box1);
@@ -321,7 +319,7 @@ pub fn the_next_week_final_scene() -> HittableList {
     let mut rng = rand::thread_rng();
 
     let mut boxes1 = HittableList::new();
-    let ground = Lambertian::new(SolidColor::new(Vec3::new(0.48, 0.83, 0.53)));
+    let ground = Lambertian::new(SolidColor::new(RGB::new(0.48, 0.83, 0.53)));
 
     for i in 0..20 {
         for j in 0..20 {
@@ -352,14 +350,14 @@ pub fn the_next_week_final_scene() -> HittableList {
         0.0,
     )));
 
-    let light = DiffuseLight::new(SolidColor::new(Vec3::new(7.0, 7.0, 7.0)));
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(7.0, 7.0, 7.0)));
     objects.add_object(Arc::new(XZRect::new(
         123.0, 423.0, 147.0, 412.0, 554.0, light,
     )));
 
     let center0 = Vec3::new(400.0, 400.0, 200.0);
     let center1 = center0 + Vec3::new(30.0, 0.0, 0.0);
-    let moving_sphere_material = Lambertian::new(SolidColor::new(Vec3::new(0.7, 0.3, 0.1)));
+    let moving_sphere_material = Lambertian::new(SolidColor::new(RGB::new(0.7, 0.3, 0.1)));
     objects.add_object(Arc::new(MovingSphere::new(
         center0,
         center1,
@@ -377,7 +375,7 @@ pub fn the_next_week_final_scene() -> HittableList {
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 150.0, 145.0),
         50.0,
-        Metal::new(Vec3::new(0.8, 0.8, 0.9), 1.0),
+        Metal::new(SolidColor::new(RGB::new(0.8, 0.8, 0.9)), 1.0),
     )));
 
     let mut boundary = StillSphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, Dielectric::new(1.5));
@@ -386,13 +384,13 @@ pub fn the_next_week_final_scene() -> HittableList {
     objects.add_object(Arc::new(ConstantMedium::new(
         boundary2,
         0.2,
-        SolidColor::new(Vec3::new(0.2, 0.4, 0.9)),
+        SolidColor::new(RGB::new(0.2, 0.4, 0.9)),
     )));
     boundary = StillSphere::new(Vec3::new(0.0, 0.0, 0.0), 5000.0, Dielectric::new(1.5));
     objects.add_object(Arc::new(ConstantMedium::new(
         boundary,
         0.0001,
-        SolidColor::new(Vec3::new(1.0, 1.0, 1.0)),
+        SolidColor::new(RGB::new(1.0, 1.0, 1.0)),
     )));
 
     let emat = Lambertian::new(ImageTexture::new("input/earthmap.jpg").unwrap());
@@ -410,7 +408,7 @@ pub fn the_next_week_final_scene() -> HittableList {
 
     let mut boxes2 = HittableList::new();
     let boxes2_size = boxes2.size();
-    let white = Lambertian::new(SolidColor::new_from_value(0.73, 0.73, 0.73));
+    let white = Lambertian::new(SolidColor::new(RGB::new(0.73, 0.73, 0.73)));
     for _ in 0..1000 {
         boxes2.add_object(Arc::new(StillSphere::new(
             Vec3::random(0.0, 165.0),

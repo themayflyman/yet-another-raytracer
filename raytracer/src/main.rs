@@ -13,6 +13,7 @@ use rand::Rng;
 use ray::Ray;
 
 use aarect::XZRect;
+use color::{gen_wavelength, HasReflectance, CIE_Y_INTERGAL, MAX_LAMBDA, MIN_LAMBDA, RGB, XYZ};
 use material::NoMaterial;
 use pdf::{HittablePDF, MixurePDF, Pdf};
 use scenes::*;
@@ -25,6 +26,7 @@ mod aarect;
 mod box_entity;
 mod bvh;
 mod camera;
+mod color;
 mod hittable;
 mod material;
 mod onb;
@@ -41,16 +43,6 @@ struct RenderResult {
     pub col: u32,
 }
 
-fn clamp(x: f64, min: f64, max: f64) -> f64 {
-    if x < min {
-        return min;
-    }
-    if x > max {
-        return max;
-    }
-    x
-}
-
 #[allow(dead_code)]
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -65,26 +57,90 @@ fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     }
 }
 
+// fn ray_color(
+//     r: &Ray,
+//     background: RGB,
+//     world: &HittableList,
+//     lights: Arc<HittableList>,
+//     depth: usize,
+// ) -> RGB {
+//     if depth == 0 {
+//         return RGB::default();
+//     }
+//
+//     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
+//         let emitted = rec.material.emitted(&rec, rec.u, rec.v, rec.p);
+//
+//         if let Some(scattered) = rec.material.scatter(r, &rec) {
+//             if let Some(scattered_ray) = scattered.ray {
+//                 return scattered.color
+//                     * ray_color(&scattered_ray, background, world, lights, depth - 1);
+//             }
+//
+//             if scattered.pdf.is_none() {
+//                 panic!("Pdf not provided")
+//             }
+//
+//             let mixure_pdf = if lights.objects.is_empty() {
+//                 let light_pdf = scattered.pdf.unwrap();
+//                 MixurePDF::new(light_pdf.clone(), light_pdf)
+//             } else {
+//                 let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+//                 MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap())
+//             };
+//             let wl = gen_wavelength();
+//             let s = Ray::new(rec.p, mixure_pdf.generate(), r.time(), wl);
+//             let pdf_val = mixure_pdf.value(s.direction());
+//             return emitted
+//                 + scattered.color
+//                     * rec.material.scatter_pdf(r, &rec, &s)
+//                     * ray_color(&s, background, world, lights, depth - 1)
+//                     / pdf_val;
+//         } else {
+//             return emitted;
+//         }
+//     }
+//
+//     background
+// }
+
 fn ray_color(
     r: &Ray,
-    background: Vec3,
     world: &HittableList,
     lights: Arc<HittableList>,
+    background_color: &RGB,
+    max_depth: usize,
+) -> XYZ {
+    let reflectance = ray_reflectance(r, world, lights, background_color, max_depth);
+    return XYZ::from_wavelength(r.wavelength) * reflectance;
+}
+
+fn ray_reflectance(
+    ray_in: &Ray,
+    world: &HittableList,
+    lights: Arc<HittableList>,
+    background_color: &RGB,
     depth: usize,
-) -> Vec3 {
+) -> f64 {
     if depth == 0 {
-        return Vec3::default();
+        return 1.0;
     }
 
-    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
-        let emitted = rec.material.emitted(&rec, rec.u, rec.v, rec.p);
+    if let Some(hit_record) = world.hit(ray_in, 0.001, f64::INFINITY) {
+        let emitted = hit_record.material.emitted(ray_in, &hit_record);
 
-        if let Some(scattered) = rec.material.scatter(r, &rec) {
+        if let Some(scattered) = hit_record.material.scatter(ray_in, &hit_record) {
             if let Some(scattered_ray) = scattered.ray {
-                return scattered.color
-                    * ray_color(&scattered_ray, background, world, lights, depth - 1);
+                return emitted
+                    + scattered.attenuation
+                        * ray_reflectance(
+                            &scattered_ray,
+                            world,
+                            lights,
+                            background_color,
+                            depth - 1,
+                        );
             }
-
             if scattered.pdf.is_none() {
                 panic!("Pdf not provided")
             }
@@ -93,22 +149,23 @@ fn ray_color(
                 let light_pdf = scattered.pdf.unwrap();
                 MixurePDF::new(light_pdf.clone(), light_pdf)
             } else {
-                let light_pdf = HittablePDF::new(lights.clone(), rec.p);
+                let light_pdf = HittablePDF::new(lights.clone(), hit_record.p);
                 MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap())
             };
-            let s = Ray::new(rec.p, mixure_pdf.generate(), r.time());
-            let pdf_val = mixure_pdf.value(s.direction());
+            let wl = gen_wavelength(ray_in.wavelength - 10.0, ray_in.wavelength + 10.0);
+            let s = Ray::new(hit_record.p, mixure_pdf.generate(), ray_in.time(), wl);
+            let pdf_val = mixure_pdf.value(s.direction(), wl);
             return emitted
-                + scattered.color
-                    * rec.material.scatter_pdf(r, &rec, &s)
-                    * ray_color(&s, background, world, lights, depth - 1)
+                + scattered.attenuation
+                    * ray_reflectance(&s, world, lights, background_color, depth - 1)
+                    * hit_record.material.scatter_pdf(ray_in, &hit_record, &s)
                     / pdf_val;
         } else {
             return emitted;
         }
     }
 
-    background
+    return background_color.reflect(ray_in.wavelength);
 }
 
 fn main() {
@@ -119,22 +176,22 @@ fn main() {
     let max_depth: usize = 50;
 
     // World
-    let world: Arc<HittableList>;
+    let mut world: Arc<HittableList> = Arc::new(HittableList::new());
     let mut lights: HittableList = HittableList::new();
     let lookfrom: Vec3;
     let lookat: Vec3;
     let vfov: f64;
     let mut aperture = 0.0;
-    let background: Vec3;
+    let background: RGB;
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 9;
+    let scene = 10;
 
     let filename = match scene {
         1 => {
             world = Arc::new(random_scene());
-            background = Vec3::new(0.7, 0.8, 1.0);
+            background = RGB::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -146,7 +203,7 @@ fn main() {
 
         2 => {
             world = Arc::new(two_spheres());
-            background = Vec3::new(0.7, 0.8, 1.0);
+            background = RGB::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -156,7 +213,7 @@ fn main() {
 
         3 => {
             world = Arc::new(two_perlin_spheres());
-            background = Vec3::new(0.7, 0.8, 1.0);
+            background = RGB::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 30.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -166,7 +223,7 @@ fn main() {
 
         4 => {
             world = Arc::new(earth());
-            background = Vec3::new(0.7, 0.8, 1.0);
+            background = RGB::new(0.7, 0.8, 1.0);
             lookfrom = Vec3::new(13.0, 2.0, 3.0);
             lookat = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -177,14 +234,13 @@ fn main() {
         5 => {
             world = Arc::new(simple_light());
             samples_per_pixel = 400;
-            background = Vec3::default();
+            background = RGB::default();
             lookfrom = Vec3::new(26.0, 3.0, 6.0);
             lookat = Vec3::new(0.0, 2.0, 0.0);
             vfov = 20.0;
 
             "simple_light.png"
         }
-
         6 => {
             world = Arc::new(cornell_box());
             lights.add_object(Arc::new(XZRect::new(
@@ -198,8 +254,8 @@ fn main() {
             aspect_ratio = 1.0;
             image_width = 600;
             image_height = 600;
-            samples_per_pixel = 1000;
-            background = Vec3::default();
+            samples_per_pixel = 100;
+            background = RGB::default();
             lookfrom = Vec3::new(278.0, 278.0, -800.0);
             lookat = Vec3::new(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -213,7 +269,7 @@ fn main() {
             image_width = 600;
             image_height = 600;
             samples_per_pixel = 200;
-            background = Vec3::default();
+            background = RGB::default();
             lookfrom = Vec3::new(278.0, 278.0, -800.0);
             lookat = Vec3::new(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -230,7 +286,7 @@ fn main() {
             image_width = 100;
             image_height = 100;
             samples_per_pixel = 1000;
-            background = Vec3::default();
+            background = RGB::default();
             lookfrom = Vec3::new(478.0, 278.0, -600.0);
             lookat = Vec3::new(278.0, 278.0, 0.0);
             vfov = 40.0;
@@ -238,23 +294,37 @@ fn main() {
             "the_next_week_final_scene.png"
         }
 
-        9 => {
-            world = Arc::new(static_the_next_week_final_scene());
-            lights.add_object(Arc::new(XZRect::new(
-                123.0, 423.0, 147.0, 412.0, 554.0, NoMaterial,
-            )));
-            aspect_ratio = 1.0;
-            image_width = 800;
-            image_height = 800;
+        10 => {
+            world = Arc::new(simple_light());
+            lookfrom = Vec3::new(0.0, 2.0, -10.0);
+            lookat = Vec3::new(0.0, 1.0, 0.0);
+            aspect_ratio = 2.0;
+            image_width = 2000;
+            image_height = 1000;
+            background = RGB::default();
             samples_per_pixel = 10000;
-            background = Vec3::default();
-            lookfrom = Vec3::new(478.0, 278.0, -600.0);
-            lookat = Vec3::new(278.0, 278.0, 0.0);
-            vfov = 40.0;
+            aperture = 0.1;
+            vfov = 30.0;
 
-            "the_next_week_final_static_scene.png"
+            "simple_light.png"
         }
 
+        // 9 => {
+        //     world = Arc::new(static_the_next_week_final_scene());
+        //     lights.add_object(Arc::new(XZRect::new(
+        //         123.0, 423.0, 147.0, 412.0, 554.0, NoMaterial,
+        //     )));
+        //     aspect_ratio = 1.0;
+        //     image_width = 800;
+        //     image_height = 800;
+        //     samples_per_pixel = 10000;
+        //     background = RGB::default();
+        //     lookfrom = Vec3::new(478.0, 278.0, -600.0);
+        //     lookat = Vec3::new(278.0, 278.0, 0.0);
+        //     vfov = 40.0;
+
+        //     "the_next_week_final_static_scene.png"
+        // }
         _ => {
             panic!("No matched scene");
         }
@@ -290,7 +360,7 @@ fn main() {
     let (tx, rx) = channel();
     for col in 0..block_col {
         for row in 0..block_row {
-            let scale: f64 = 1.0 / samples_per_pixel as f64;
+            // let scale: f64 = 1.0 / samples_per_pixel as f64;
             let tx = tx.clone();
             let camera = camera.clone();
             let world = world.clone();
@@ -303,41 +373,64 @@ fn main() {
 
             pool.execute(move || {
                 for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                    let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
-                    for _s in 0..samples_per_pixel {
-                        let mut rng = rand::thread_rng();
+                    // let mut pixel_color = RGB::new(0.0, 0.0, 0.0);
+                    // for _s in 0..samples_per_pixel {
+                    //     let mut rng = rand::thread_rng();
 
+                    //     let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                    //     let u: f64 = target_x / (image_width - 1) as f64;
+                    //     let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                    //     let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
+                    //     let r: Ray = camera.get_ray(u, v);
+                    //     pixel_color = pixel_color
+                    //         + ray_color(&r, background, &world, lights.clone(), max_depth);
+                    // }
+
+                    // let r = if pixel_color.r().is_nan() {
+                    //     0.0
+                    // } else {
+                    //     pixel_color.r()
+                    // };
+
+                    // let g = if pixel_color.g().is_nan() {
+                    //     0.0
+                    // } else {
+                    //     pixel_color.g()
+                    // };
+
+                    // let b = if pixel_color.b().is_nan() {
+                    //     0.0
+                    // } else {
+                    //     pixel_color.b()
+                    // };
+
+                    // *pixel = image::Rgba([
+                    //     (256_f64 * clamp((r * scale).sqrt(), 0.0, 0.999)) as u8,
+                    //     (256_f64 * clamp((g * scale).sqrt(), 0.0, 0.999)) as u8,
+                    //     (256_f64 * clamp((b * scale).sqrt(), 0.0, 0.999)) as u8,
+                    //     255,
+                    // ]);
+                    let mut pixel_color_xyz = XYZ::default();
+                    for _ in 0..samples_per_pixel {
+                        let mut rng = rand::thread_rng();
                         let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
                         let u: f64 = target_x / (image_width - 1) as f64;
                         let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
                         let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
-                        let r: Ray = camera.get_ray(u, v);
-                        pixel_color = pixel_color
-                            + ray_color(&r, background, &world, lights.clone(), max_depth);
+                        let wl = gen_wavelength(MIN_LAMBDA, MAX_LAMBDA);
+                        let r: Ray = camera.get_ray(u, v, wl);
+
+                        pixel_color_xyz +=
+                            ray_color(&r, &world, lights.clone(), &background, max_depth);
                     }
 
-                    let r = if pixel_color.r().is_nan() {
-                        0.0
-                    } else {
-                        pixel_color.r()
-                    };
-
-                    let g = if pixel_color.g().is_nan() {
-                        0.0
-                    } else {
-                        pixel_color.g()
-                    };
-
-                    let b = if pixel_color.b().is_nan() {
-                        0.0
-                    } else {
-                        pixel_color.b()
-                    };
-
+                    pixel_color_xyz = pixel_color_xyz * (MAX_LAMBDA - MIN_LAMBDA)
+                        / (CIE_Y_INTERGAL * samples_per_pixel as f64);
+                    let pixel_color_rgb = pixel_color_xyz.into_rgb().gamma_corrected();
                     *pixel = image::Rgba([
-                        (256_f64 * clamp((r * scale).sqrt(), 0.0, 0.999)) as u8,
-                        (256_f64 * clamp((g * scale).sqrt(), 0.0, 0.999)) as u8,
-                        (256_f64 * clamp((b * scale).sqrt(), 0.0, 0.999)) as u8,
+                        (256_f64 * pixel_color_rgb.r()) as u8,
+                        (256_f64 * pixel_color_rgb.g()) as u8,
+                        (256_f64 * pixel_color_rgb.b()) as u8,
                         255,
                     ]);
                 }

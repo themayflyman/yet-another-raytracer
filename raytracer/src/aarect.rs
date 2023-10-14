@@ -145,8 +145,8 @@ impl<M: Material> Hittable for XZRect<M> {
         })
     }
 
-    fn pdf_value(&self, origin: Vec3, direction: Vec3) -> f64 {
-        if let Some(rec) = self.hit(&Ray::new(origin, direction, 0.0), 0.001, f64::INFINITY) {
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, wavelength: f64) -> f64 {
+        if let Some(rec) = self.hit(&Ray::new(origin, direction, 0.0, wavelength), 0.001, f64::INFINITY) {
             let area = (self.x1 - self.x0) * (self.z1 - self.z0);
             let distance_squared = rec.t * rec.t * direction.length_squared();
             let cosine = direction.dot(&rec.normal).abs() / direction.length();

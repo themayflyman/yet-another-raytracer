@@ -8,7 +8,7 @@ use super::onb::Onb;
 use super::vec3::Vec3;
 
 pub trait Pdf {
-    fn value(&self, direction: Vec3) -> f64;
+    fn value(&self, direction: Vec3, wavelength: f64) -> f64;
     fn generate(&self) -> Vec3;
 }
 
@@ -37,7 +37,7 @@ impl CosinePDF {
 }
 
 impl Pdf for CosinePDF {
-    fn value(&self, direction: Vec3) -> f64 {
+    fn value(&self, direction: Vec3, _wavelength: f64) -> f64 {
         let cosine = direction.unit_vector().dot(&self.uvw.w);
         if cosine <= 0.0 {
             0.0
@@ -63,8 +63,8 @@ impl HittablePDF {
 }
 
 impl Pdf for HittablePDF {
-    fn value(&self, direction: Vec3) -> f64 {
-        self.hittable.pdf_value(self.origin, direction)
+    fn value(&self, direction: Vec3, wavelength: f64) -> f64 {
+        self.hittable.pdf_value(self.origin, direction, wavelength)
     }
 
     fn generate(&self) -> Vec3 {
@@ -84,8 +84,8 @@ impl MixurePDF {
 }
 
 impl Pdf for MixurePDF {
-    fn value(&self, direction: Vec3) -> f64 {
-        0.5 * self.p0.value(direction) + 0.5 * self.p1.value(direction)
+    fn value(&self, direction: Vec3, wavelength: f64) -> f64 {
+        0.5 * self.p0.value(direction, wavelength) + 0.5 * self.p1.value(direction, wavelength)
     }
 
     fn generate(&self) -> Vec3 {
