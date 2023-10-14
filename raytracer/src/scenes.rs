@@ -7,7 +7,7 @@ use crate::box_entity::BoxEntity;
 use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
-use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
+use crate::material::{SF66, DiffuseLight, Lambertian, Metal};
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
@@ -64,7 +64,7 @@ pub fn random_scene() -> HittableList {
                     let sphere_material = Metal::new(albedo, fuzz);
                     world.add_object(Arc::new(StillSphere::new(center, 0.2, sphere_material)));
                 } else {
-                    let sphere_material = Dielectric::new(1.5);
+                    let sphere_material = SF66;
                     world.add_object(Arc::new(StillSphere::new(center, 0.2, sphere_material)));
                 }
             }
@@ -74,7 +74,7 @@ pub fn random_scene() -> HittableList {
     world.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
-        Dielectric::new(1.5),
+        SF66,
     )));
 
     world.add_object(Arc::new(StillSphere::new(
@@ -230,7 +230,7 @@ pub fn cornell_box() -> HittableList {
     // ));
     // objects.add_object(box2);
 
-    let glass = Dielectric::new(1.5);
+    let glass = SF66;
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(190.0, 90.0, 190.0),
         90.0,
@@ -370,7 +370,7 @@ pub fn the_next_week_final_scene() -> HittableList {
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(260.0, 150.0, 45.0),
         50.0,
-        Dielectric::new(1.5),
+        SF66,
     )));
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 150.0, 145.0),
@@ -378,15 +378,15 @@ pub fn the_next_week_final_scene() -> HittableList {
         Metal::new(SolidColor::new(RGB::new(0.8, 0.8, 0.9)), 1.0),
     )));
 
-    let mut boundary = StillSphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, Dielectric::new(1.5));
-    let boundary2 = StillSphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, Dielectric::new(1.5));
+    let mut boundary = StillSphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, SF66);
+    let boundary2 = StillSphere::new(Vec3::new(360.0, 150.0, 145.0), 70.0, SF66);
     objects.add_object(Arc::new(boundary));
     objects.add_object(Arc::new(ConstantMedium::new(
         boundary2,
         0.2,
         SolidColor::new(RGB::new(0.2, 0.4, 0.9)),
     )));
-    boundary = StillSphere::new(Vec3::new(0.0, 0.0, 0.0), 5000.0, Dielectric::new(1.5));
+    boundary = StillSphere::new(Vec3::new(0.0, 0.0, 0.0), 5000.0, SF66);
     objects.add_object(Arc::new(ConstantMedium::new(
         boundary,
         0.0001,

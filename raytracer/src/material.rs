@@ -97,12 +97,12 @@ impl<T: Texture> Material for Metal<T> {
     }
 }
 
-fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
-    let cos_theta = f64::min(-uv.dot(&n), 1.0);
-    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-    let r_out_parallel = -(f64::abs(1.0 - r_out_perp.length_squared())).sqrt() * n;
-    r_out_perp + r_out_parallel
-}
+// fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+//     let cos_theta = f64::min(-uv.dot(&n), 1.0);
+//     let r_out_perp = etai_over_etat * (uv + cos_theta * n);
+//     let r_out_parallel = -(f64::abs(1.0 - r_out_perp.length_squared())).sqrt() * n;
+//     r_out_perp + r_out_parallel
+// }
 
 fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
     let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
@@ -110,58 +110,192 @@ fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Dielectric {
-    pub index_of_refraction: f64,
+    b1: f64,
+    b2: f64,
+    b3: f64,
+    c1: f64,
+    c2: f64,
+    c3: f64,
 }
 
-impl Dielectric {
-    pub fn new(index_of_refraction: f64) -> Dielectric {
-        Dielectric {
-            index_of_refraction,
-        }
+// https://refractiveindex.info/?shelf=glass&book=BAF10&page=SCHOTT
+pub static BAF10: Dielectric = Dielectric {
+    b1: 1.5851495,
+    b2: 0.143559385,
+    b3: 1.08521269,
+    c1: 0.00926681282 * 1e6,
+    c2: 0.0424489805 * 1e6,
+    c3: 105.613573 * 1e6,
+};
+
+// https://refractiveindex.info/?shelf=glass&book=BK7&page=SCHOTT
+pub static BK7: Dielectric = Dielectric {
+    b1: 1.03961212,
+    b2: 0.231792344,
+    b3: 1.01046945,
+    c1: 0.00600069867,
+    c2: 0.0200179144,
+    c3: 103.560653,
+};
+
+// https://refractiveindex.info/?shelf=glass&book=SF11&page=SCHOTT
+pub static SF11: Dielectric = Dielectric {
+    b1: 1.73759695,
+    b2: 0.313747346,
+    b3: 1.89878101,
+    c1: 0.013188707,
+    c2: 0.0623068142,
+    c3: 155.23629,
+};
+
+// https://refractiveindex.info/?shelf=glass&book=FK51Apage=SCHOTT
+pub static FK51A: Dielectric = Dielectric {
+    b1: 0.971247817,
+    b2: 0.216901417,
+    b3: 0.904651666,
+    c1: 0.00472301995,
+    c2: 0.0153575612,
+    c3: 168.68133,
+};
+
+// https://refractiveindex.info/?shelf=glass&book=LASF9&page=SCHOTT
+pub static LASF9: Dielectric = Dielectric {
+    b1: 2.00029547,
+    b2: 0.298926886,
+    b3: 1.80691843,
+    c1: 0.0121426017,
+    c2: 0.0538736236,
+    c3: 156.530829,
+};
+
+// https://refractiveindex.info/?shelf=glass&book=SCHOTT-SF&page=N-SF66
+pub static SF66: Dielectric = Dielectric {
+    b1: 2.0245976,
+    b2: 0.470187196,
+    b3: 2.59970433,
+    c1: 0.0147053225,
+    c2: 0.0692998276,
+    c3: 161.817601,
+};
+
+// impl Dielectric {
+//     // pub fn new(index_of_refraction: f64) -> Self {
+//     //     Dielectric {
+//     //         index_of_refraction,
+//     //     }
+//     // }
+// }
+
+fn refract(v: Vec3, n: Vec3, ni_over_nt: f64) -> Option<Vec3> {
+    let uv = v.unit_vector();
+    let dt = uv.dot(&n);
+    let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
+    if discriminant > 0.0 {
+        let refracted = (uv - n * dt) * ni_over_nt - n * f64::sqrt(discriminant);
+        Some(refracted)
+    } else {
+        None
     }
+}
+
+fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    let r0 = r0 * r0;
+    r0 + (1.0 - r0) * f64::powi(1.0 - cosine, 5)
 }
 
 impl Material for Dielectric {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<Scatter> {
-        let refraction_ratio = if hit_record.front_face {
-            1.0 / self.index_of_refraction
+        // let refraction_ratio = if hit_record.front_face {
+        //     1.0 / self.index_of_refraction
+        // } else {
+        //     self.index_of_refraction
+        // };
+
+        // let unit_direction = ray_in.direction().unit_vector();
+        // let cos_theta = f64::min(-ray_in.direction().unit_vector().dot(&hit_record.normal), 1.0);
+        // let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+
+        // let cannot_refract = refraction_ratio * sin_theta > 1.0;
+
+        // if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
+        //     Some(Scatter {
+        //         attenuation: 1.0,
+        //         ray: Some(Ray::new(
+        //             hit_record.p,
+        //             reflect(unit_direction, hit_record.normal),
+        //             ray_in.time(),
+        //             ray_in.wavelength,
+        //         )),
+        //         is_specular: true,
+        //         pdf: None,
+        //     })
+        // } else {
+        //     Some(Scatter {
+        //         // color: Vec3::new(1.0, 1.0, 1.0),
+        //         attenuation: 1.0,
+        //         ray: Some(Ray::new(
+        //             hit_record.p,
+        //             refract(unit_direction, hit_record.normal, refraction_ratio),
+        //             ray_in.time(),
+        //             ray_in.wavelength,
+        //         )),
+        //         is_specular: true,
+        //         pdf: None,
+        //     })
+        // }
+        let wl_pow2 = ray_in.wavelength * ray_in.wavelength;
+        // Sellmeier equation: https://en.wikipedia.org/wiki/Sellmeier_equation
+        let refractive_index_squared = 1.0
+            + self.b1 * wl_pow2 / (wl_pow2 - self.c1)
+            + self.b2 * wl_pow2 / (wl_pow2 - self.c2)
+            + self.b3 * wl_pow2 / (wl_pow2 - self.c3);
+        let refractive_index = refractive_index_squared.sqrt();
+        let (outward_normal, ni_over_nt, cosine) = if ray_in.direction().dot(&hit_record.normal)
+            > 0.0
+        {
+            (
+                -hit_record.normal,
+                refractive_index,
+                refractive_index * ray_in.direction().dot(&hit_record.normal) / ray_in.direction().length(),
+            )
         } else {
-            self.index_of_refraction
+            (
+                hit_record.normal,
+                refractive_index.recip(),
+                -ray_in.direction().dot(&hit_record.normal) / ray_in.direction().length(),
+            )
         };
 
-        let unit_direction = ray_in.direction().unit_vector();
-        let cos_theta = f64::min(-ray_in.direction().unit_vector().dot(&hit_record.normal), 1.0);
-        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-
-        let cannot_refract = refraction_ratio * sin_theta > 1.0;
-
-        if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
-            Some(Scatter {
+        if let Some(refracted) = refract(ray_in.direction(), outward_normal, ni_over_nt) {
+            let ray_out: Ray;
+            if random::<f64>() < schlick(cosine, refractive_index) {
+                let reflected = reflect(ray_in.direction(), hit_record.normal);
+                ray_out = Ray::new(hit_record.p, reflected,  ray_in.time(), ray_in.wavelength);
+            } else {
+                ray_out = Ray::new(hit_record.p, refracted, ray_in.time(), ray_in.wavelength);
+            }
+            return Some(Scatter {
                 attenuation: 1.0,
-                ray: Some(Ray::new(
-                    hit_record.p,
-                    reflect(unit_direction, hit_record.normal),
-                    ray_in.time(),
-                    ray_in.wavelength,
-                )),
                 is_specular: true,
+                ray: Some(ray_out),
                 pdf: None,
-            })
+            });
         } else {
-            Some(Scatter {
-                // color: Vec3::new(1.0, 1.0, 1.0),
+            let reflected = reflect(ray_in.direction(), hit_record.normal);
+            return Some(Scatter {
                 attenuation: 1.0,
+                is_specular: true,
                 ray: Some(Ray::new(
                     hit_record.p,
-                    refract(unit_direction, hit_record.normal, refraction_ratio),
+                    reflected,
                     ray_in.time(),
                     ray_in.wavelength,
                 )),
-                is_specular: true,
                 pdf: None,
-            })
+            });
         }
     }
 }
