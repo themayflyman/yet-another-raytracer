@@ -35,6 +35,7 @@ mod ray;
 mod scenes;
 mod sphere;
 mod texture;
+mod triangle;
 mod vec3;
 
 struct RenderResult {
