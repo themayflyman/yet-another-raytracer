@@ -6,6 +6,7 @@ use crate::ray::Ray;
 use rand::Rng;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct BVHNode {
     pub left: Option<Arc<dyn Hittable>>,
     pub right: Option<Arc<dyn Hittable>>,

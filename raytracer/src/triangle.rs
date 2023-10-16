@@ -1,7 +1,10 @@
 use std::f64::EPSILON;
+use std::path::Path;
+use std::sync::Arc;
 
 use crate::aabb::AxisAlignedBoundingBox;
-use crate::hittable::{HitRecord, Hittable};
+use crate::bvh::BVHNode;
+use crate::hittable::{HitRecord, Hittable, HittableList};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -97,5 +100,86 @@ impl<M: Material> Hittable for Triangle<M> {
             front_face,
             material: &self.material,
         });
+    }
+}
+
+#[derive(Clone)]
+pub struct TriangleMesh {
+    // to accelerate triangle hit test
+    pub bvh: BVHNode,
+}
+
+impl TriangleMesh {
+    pub fn from_obj(obj_path: &Path, material: impl Material + Clone + 'static) -> Self {
+        let (models, _materials) =
+            tobj::load_obj(obj_path, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load OBJ file");
+
+        let mut read_mesh = HittableList::new();
+        for model in models.iter() {
+            let mesh = &model.mesh;
+            let mesh_vertices: Vec<Vec3> = mesh
+                .positions
+                .chunks_exact(3)
+                .map(|p| Vec3::new(p[0].into(), p[1].into(), p[2].into()))
+                .collect();
+            let mesh_normals: Vec<Option<Vec3>> = if !mesh.normals.is_empty() {
+                mesh.normals
+                    .chunks_exact(3)
+                    .map(|n| Some(Vec3::new(n[0].into(), n[1].into(), n[2].into())))
+                    .collect()
+            } else {
+                mesh.indices.iter().map(|_| None).collect()
+            };
+            let mesh_uv: Vec<Option<(f64, f64)>> = if !mesh.normals.is_empty() {
+                mesh.texcoords
+                    .chunks_exact(2)
+                    .map(|uv| Some((uv[0].into(), uv[1].into())))
+                    .collect()
+            } else {
+                mesh.indices.iter().map(|_| None).collect()
+            };
+
+            for i in 0..mesh.indices.len() / 3 {
+                let vertices = [
+                    mesh_vertices[mesh.indices[i * 3] as usize],
+                    mesh_vertices[mesh.indices[i * 3 + 1] as usize],
+                    mesh_vertices[mesh.indices[i * 3 + 2] as usize],
+                ];
+                let default_normal = (vertices[1] - vertices[0]).cross(&(vertices[2] - vertices[0])).unit_vector();
+                let normals = [
+                    mesh_normals[mesh.indices[i * 3] as usize].unwrap_or(default_normal),
+                    mesh_normals[mesh.indices[i * 3 + 1] as usize].unwrap_or(default_normal),
+                    mesh_normals[mesh.indices[i * 3 + 2] as usize].unwrap_or(default_normal),
+                ];
+                let uv = [
+                    mesh_uv[mesh.indices[i * 3] as usize].unwrap_or((0.0, 0.0)),
+                    mesh_uv[mesh.indices[i * 3 + 1] as usize].unwrap_or((0.0, 0.0)),
+                    mesh_uv[mesh.indices[i * 3 + 2] as usize].unwrap_or((0.0, 0.0)),
+                ];
+
+                let triangle = Triangle {
+                    vertices,
+                    normals,
+                    uv,
+                    material: material.clone(),
+                };
+                read_mesh.add_object(Arc::new(triangle));
+            }
+        }
+
+        let size = read_mesh.size();
+        let bvh = BVHNode::new(&mut read_mesh.objects, 0, size, 0.0, 0.0);
+
+        return Self { bvh };
+    }
+}
+
+impl Hittable for TriangleMesh {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        return self.bvh.hit(ray, t_min, t_max);
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+        return self.bvh.bounding_box(time0, time1);
     }
 }
