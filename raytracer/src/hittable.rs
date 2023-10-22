@@ -9,6 +9,18 @@ use std::sync::Arc;
 use rand::Rng;
 
 pub trait Hittable: Send + Sync {
+    fn centroid(&self, time0: f64, time1: f64) -> Option<Vec3> {
+        if let Some(bbox) = self.bounding_box(time0, time1) {
+            return Some(Vec3::new(
+                (bbox.max.x() + bbox.min.x()) / 2.0,
+                (bbox.max.y() + bbox.min.y()) / 2.0,
+                (bbox.max.z() + bbox.min.z()) / 2.0,
+            ));
+        } else {
+            return None;
+        }
+    }
+
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;

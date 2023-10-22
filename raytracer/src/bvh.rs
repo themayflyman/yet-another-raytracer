@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
-use rand::Rng;
+// use rand::Rng;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -21,13 +21,46 @@ impl BVHNode {
         time0: f64,
         time1: f64,
     ) -> Self {
-        let mut rnd = rand::thread_rng();
+        // let mut rnd = rand::thread_rng();
 
-        let axis = rnd.gen_range(0, 3);
-        let comparator = |x: &Arc<dyn Hittable>, y: &Arc<dyn Hittable>| {
+        // let axis = rnd.gen_range(0, 3);
+        let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| {
+            let max_x = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::max(max, centroid.x());
+            });
+            let max_y = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::max(max, centroid.y());
+            });
+            let max_z = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::max(max, centroid.z());
+            });
+            let min_x = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::min(min, centroid.x());
+            });
+            let min_y = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::min(min, centroid.y());
+            });
+            let min_z = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+                let centroid = v.centroid(time0, time1).unwrap();
+                return f64::min(min, centroid.z());
+            });
+
+            let mut axis: usize = 0;
+            if max_y - min_y > max_x - min_x {
+                axis = 1;
+            }
+            if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
+                axis = 2;
+            }
+
             f64::partial_cmp(
-                &(x.bounding_box(time0, time1).unwrap().min[axis]),
-                &(y.bounding_box(time0, time1).unwrap().min[axis]),
+                &(a.centroid(time0, time1).unwrap()[axis]),
+                &(b.centroid(time0, time1).unwrap()[axis]),
             )
             .unwrap()
         };
@@ -92,10 +125,8 @@ impl Hittable for BVHNode {
             hit_rec = Some(hit_left);
         }
 
-        if self.right.is_some() {
-            if let Some(hit_right) = self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
-                hit_rec = Some(hit_right);
-            }
+        if let Some(hit_right) = self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
+            hit_rec = Some(hit_right);
         }
 
         hit_rec
