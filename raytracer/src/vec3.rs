@@ -4,32 +4,32 @@
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Vec3 {
-    elements: [f64; 3],
+    elements: [f32; 3],
 }
 
 #[macro_export]
 macro_rules! implement_vec3_alike {
     ($type:tt) => (
         impl $type {
-            pub fn new(e0: f64, e1: f64, e2: f64) -> $type {
+            pub fn new(e0: f32, e1: f32, e2: f32) -> $type {
                 $type {
                     elements: [e0, e1, e2],
                 }
             }
 
-            pub fn x(&self) -> f64 {
+            pub fn x(&self) -> f32 {
                 self.elements[0]
             }
 
-            pub fn y(&self) -> f64 {
+            pub fn y(&self) -> f32 {
                 self.elements[1]
             }
 
-            pub fn z(&self) -> f64 {
+            pub fn z(&self) -> f32 {
                 self.elements[2]
             }
 
-            pub fn random(low: f64, high: f64) -> Self {
+            pub fn random(low: f32, high: f32) -> Self {
                 use rand::Rng;
                 let mut rng = rand::thread_rng();
                 $type {
@@ -96,17 +96,17 @@ macro_rules! implement_vec3_alike {
             }
         }
 
-        impl std::ops::Mul<f64> for $type {
+        impl std::ops::Mul<f32> for $type {
             type Output = Self;
 
-            fn mul(self, other: f64) -> Self::Output {
+            fn mul(self, other: f32) -> Self::Output {
                 $type {
                     elements: [self.x() * other, self.y() * other, self.z() * other],
                 }
             }
         }
 
-        impl std::ops::Mul<$type> for f64 {
+        impl std::ops::Mul<$type> for f32 {
             type Output = $type;
 
             fn mul(self, other: $type) -> Self::Output {
@@ -116,13 +116,13 @@ macro_rules! implement_vec3_alike {
             }
         }
 
-        impl std::ops::Div<f64> for $type {
+        impl std::ops::Div<f32> for $type {
             type Output = Self;
 
-            fn div(self, other: f64) -> Self::Output {
+            fn div(self, other: f32) -> Self::Output {
                 if other == 0.0 {
                     return $type {
-                        elements: [f64::MAX, f64::MAX, f64::MAX],
+                        elements: [f32::MAX, f32::MAX, f32::MAX],
                     };
                 }
                 $type {
@@ -148,8 +148,8 @@ macro_rules! implement_vec3_alike {
         }
 
         impl std::ops::Index<usize> for $type {
-            type Output = f64;
-            fn index(&self, idx: usize) -> &f64 {
+            type Output = f32;
+            fn index(&self, idx: usize) -> &f32 {
                 match idx {
                     0 => &self.elements[0],
                     1 => &self.elements[1],
@@ -160,7 +160,7 @@ macro_rules! implement_vec3_alike {
         }
 
         impl std::ops::IndexMut<usize> for $type {
-            fn index_mut(&mut self, idx: usize) -> &mut f64 {
+            fn index_mut(&mut self, idx: usize) -> &mut f32 {
                 match idx {
                     0 => &mut self.elements[0],
                     1 => &mut self.elements[1],
@@ -175,11 +175,11 @@ macro_rules! implement_vec3_alike {
 implement_vec3_alike!(Vec3);
 
 impl Vec3 {
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         (self.x() * self.x() + self.y() * self.y() + self.z() * self.z()).sqrt()
     }
 
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f32 {
         self.x() * self.x() + self.y() * self.y() + self.z() * self.z()
     }
 
@@ -193,7 +193,7 @@ impl Vec3 {
         }
     }
 
-    pub fn dot(&self, other: &Vec3) -> f64 {
+    pub fn dot(&self, other: &Vec3) -> f32 {
         (self.x() * other.x()) + (self.y() * other.y()) + (self.z() * other.z())
     }
 
@@ -208,8 +208,8 @@ impl Vec3 {
     }
 
     pub fn near_zero(&self) -> bool {
-        f64::abs(self.elements[0]) < 1e-8
-            && f64::abs(self.elements[0]) < 1e-8
-            && f64::abs(self.elements[0]) < 1e-8
+        f32::abs(self.elements[0]) < 1e-8
+            && f32::abs(self.elements[0]) < 1e-8
+            && f32::abs(self.elements[0]) < 1e-8
     }
 }

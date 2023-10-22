@@ -1,6 +1,6 @@
 use crate::hittable::Hittable;
 use rand::Rng;
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::sync::Arc;
 
 use super::onb::Onb;
@@ -8,13 +8,13 @@ use super::onb::Onb;
 use super::vec3::Vec3;
 
 pub trait Pdf {
-    fn value(&self, direction: Vec3, wavelength: f64) -> f64;
+    fn value(&self, direction: Vec3, wavelength: f32) -> f32;
     fn generate(&self) -> Vec3;
 }
 
 pub fn random_cosine_direction() -> Vec3 {
-    let r1 = rand::random::<f64>();
-    let r2 = rand::random::<f64>();
+    let r1 = rand::random::<f32>();
+    let r2 = rand::random::<f32>();
     let z = (1.0 - r2).sqrt();
 
     let phi = 2.0 * PI * r1;
@@ -37,7 +37,7 @@ impl CosinePDF {
 }
 
 impl Pdf for CosinePDF {
-    fn value(&self, direction: Vec3, _wavelength: f64) -> f64 {
+    fn value(&self, direction: Vec3, _wavelength: f32) -> f32 {
         let cosine = direction.unit_vector().dot(&self.uvw.w);
         if cosine <= 0.0 {
             0.0
@@ -63,7 +63,7 @@ impl HittablePDF {
 }
 
 impl Pdf for HittablePDF {
-    fn value(&self, direction: Vec3, wavelength: f64) -> f64 {
+    fn value(&self, direction: Vec3, wavelength: f32) -> f32 {
         self.hittable.pdf_value(self.origin, direction, wavelength)
     }
 
@@ -84,12 +84,12 @@ impl MixurePDF {
 }
 
 impl Pdf for MixurePDF {
-    fn value(&self, direction: Vec3, wavelength: f64) -> f64 {
+    fn value(&self, direction: Vec3, wavelength: f32) -> f32 {
         0.5 * self.p0.value(direction, wavelength) + 0.5 * self.p1.value(direction, wavelength)
     }
 
     fn generate(&self) -> Vec3 {
-        if rand::thread_rng().gen_range::<f64>(0.0, 1.0) < 0.5 {
+        if rand::thread_rng().gen_range::<f32>(0.0, 1.0) < 0.5 {
             self.p0.generate()
         } else {
             self.p1.generate()

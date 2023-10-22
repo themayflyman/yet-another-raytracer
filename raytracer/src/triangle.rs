@@ -1,4 +1,4 @@
-use std::f64::EPSILON;
+use std::f32::EPSILON;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -13,40 +13,40 @@ use crate::vec3::Vec3;
 pub struct Triangle<M: Material> {
     pub vertices: [Vec3; 3],
     pub normals: [Vec3; 3], // array of normal vectors, one per vertex in the mesh. If present, these are interpolated across triangle faces to compute shading normals
-    pub uv: [(f64, f64); 3],
+    pub uv: [(f32, f32); 3],
     pub material: M,
 }
 
 impl<M: Material> Hittable for Triangle<M> {
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         let min = Vec3::new(
             self.vertices
                 .iter()
-                .fold(f64::INFINITY, |min: f64, &v| f64::min(min, v.x())),
+                .fold(f32::INFINITY, |min: f32, &v| f32::min(min, v.x())),
             self.vertices
                 .iter()
-                .fold(f64::INFINITY, |min: f64, &v| f64::min(min, v.y())),
+                .fold(f32::INFINITY, |min: f32, &v| f32::min(min, v.y())),
             self.vertices
                 .iter()
-                .fold(f64::INFINITY, |min: f64, &v| f64::min(min, v.z())),
+                .fold(f32::INFINITY, |min: f32, &v| f32::min(min, v.z())),
         );
         let max = Vec3::new(
             self.vertices
                 .iter()
-                .fold(f64::NEG_INFINITY, |max: f64, &v| f64::max(max, v.x())),
+                .fold(f32::NEG_INFINITY, |max: f32, &v| f32::max(max, v.x())),
             self.vertices
                 .iter()
-                .fold(f64::NEG_INFINITY, |max: f64, &v| f64::max(max, v.y())),
+                .fold(f32::NEG_INFINITY, |max: f32, &v| f32::max(max, v.y())),
             self.vertices
                 .iter()
-                .fold(f64::NEG_INFINITY, |max: f64, &v| f64::max(max, v.z())),
+                .fold(f32::NEG_INFINITY, |max: f32, &v| f32::max(max, v.z())),
         );
 
         return Some(AxisAlignedBoundingBox::new(min, max));
     }
 
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let edge1 = self.vertices[1] - self.vertices[0];
         let edge2 = self.vertices[2] - self.vertices[0];
 
@@ -130,7 +130,7 @@ impl TriangleMesh {
             } else {
                 mesh.indices.iter().map(|_| None).collect()
             };
-            let mesh_uv: Vec<Option<(f64, f64)>> = if !mesh.normals.is_empty() {
+            let mesh_uv: Vec<Option<(f32, f32)>> = if !mesh.normals.is_empty() {
                 mesh.texcoords
                     .chunks_exact(2)
                     .map(|uv| Some((uv[0].into(), uv[1].into())))
@@ -175,11 +175,11 @@ impl TriangleMesh {
 }
 
 impl Hittable for TriangleMesh {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         return self.bvh.hit(ray, t_min, t_max);
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox> {
         return self.bvh.bounding_box(time0, time1);
     }
 }

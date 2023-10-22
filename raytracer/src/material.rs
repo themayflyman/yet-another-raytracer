@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::sync::Arc;
 
 use rand::{random, Rng};
@@ -12,7 +12,7 @@ use crate::vec3::Vec3;
 #[derive(Clone)]
 pub struct Scatter {
     // pub color: RGB,
-    pub attenuation: f64,
+    pub attenuation: f32,
     pub ray: Option<Ray>,
     pub is_specular: bool,
     pub pdf: Option<Arc<dyn Pdf>>,
@@ -22,11 +22,11 @@ pub trait Material: Send + Sync {
     fn scatter(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> Option<Scatter> {
         None
     }
-    // fn emitted(&self, _rec: &HitRecord, _u: f64, _v: f64, _p: Vec3) -> RGB {
-    fn emitted(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> f64 {
+    // fn emitted(&self, _rec: &HitRecord, _u: f32, _v: f32, _p: Vec3) -> RGB {
+    fn emitted(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> f32 {
         return 0.0;
     }
-    fn scatter_pdf(&self, _ray_in: &Ray, _hit: &HitRecord, _scattered: &Ray) -> f64 {
+    fn scatter_pdf(&self, _ray_in: &Ray, _hit: &HitRecord, _scattered: &Ray) -> f32 {
         0.0
     }
 }
@@ -52,7 +52,7 @@ impl<T: Texture> Material for Lambertian<T> {
             pdf: Some(Arc::new(CosinePDF::new(hit_record.normal))),
         })
     }
-    fn scatter_pdf(&self, _ray_in: &Ray, hit: &HitRecord, scattered: &Ray) -> f64 {
+    fn scatter_pdf(&self, _ray_in: &Ray, hit: &HitRecord, scattered: &Ray) -> f32 {
         let cosine = hit.normal.dot(&scattered.direction().unit_vector());
         if cosine < 0.0 {
             0.0
@@ -65,11 +65,11 @@ impl<T: Texture> Material for Lambertian<T> {
 #[derive(Clone)]
 pub struct Metal<T: Texture> {
     albedo: T,
-    fuzz: f64,
+    fuzz: f32,
 }
 
 impl<T: Texture> Metal<T> {
-    pub fn new(albedo: T, fuzz: f64) -> Self {
+    pub fn new(albedo: T, fuzz: f32) -> Self {
         Metal { albedo, fuzz }
     }
 }
@@ -97,14 +97,14 @@ impl<T: Texture> Material for Metal<T> {
     }
 }
 
-// fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
-//     let cos_theta = f64::min(-uv.dot(&n), 1.0);
+// fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
+//     let cos_theta = f32::min(-uv.dot(&n), 1.0);
 //     let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-//     let r_out_parallel = -(f64::abs(1.0 - r_out_perp.length_squared())).sqrt() * n;
+//     let r_out_parallel = -(f32::abs(1.0 - r_out_perp.length_squared())).sqrt() * n;
 //     r_out_perp + r_out_parallel
 // }
 
-fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     r0 = r0 * r0;
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
@@ -112,12 +112,12 @@ fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
 
 #[derive(Clone, Copy)]
 pub struct Dielectric {
-    b1: f64,
-    b2: f64,
-    b3: f64,
-    c1: f64,
-    c2: f64,
-    c3: f64,
+    b1: f32,
+    b2: f32,
+    b3: f32,
+    c1: f32,
+    c2: f32,
+    c3: f32,
 }
 
 // https://refractiveindex.info/?shelf=glass&book=BAF10&page=SCHOTT
@@ -181,29 +181,29 @@ pub static SF66: Dielectric = Dielectric {
 };
 
 // impl Dielectric {
-//     // pub fn new(index_of_refraction: f64) -> Self {
+//     // pub fn new(index_of_refraction: f32) -> Self {
 //     //     Dielectric {
 //     //         index_of_refraction,
 //     //     }
 //     // }
 // }
 
-fn refract(v: Vec3, n: Vec3, ni_over_nt: f64) -> Option<Vec3> {
+fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
     let uv = v.unit_vector();
     let dt = uv.dot(&n);
     let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
     if discriminant > 0.0 {
-        let refracted = (uv - n * dt) * ni_over_nt - n * f64::sqrt(discriminant);
+        let refracted = (uv - n * dt) * ni_over_nt - n * f32::sqrt(discriminant);
         Some(refracted)
     } else {
         None
     }
 }
 
-fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     let r0 = r0 * r0;
-    r0 + (1.0 - r0) * f64::powi(1.0 - cosine, 5)
+    r0 + (1.0 - r0) * f32::powi(1.0 - cosine, 5)
 }
 
 impl Material for Dielectric {
@@ -215,12 +215,12 @@ impl Material for Dielectric {
         // };
 
         // let unit_direction = ray_in.direction().unit_vector();
-        // let cos_theta = f64::min(-ray_in.direction().unit_vector().dot(&hit_record.normal), 1.0);
+        // let cos_theta = f32::min(-ray_in.direction().unit_vector().dot(&hit_record.normal), 1.0);
         // let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         // let cannot_refract = refraction_ratio * sin_theta > 1.0;
 
-        // if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
+        // if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f32>() {
         //     Some(Scatter {
         //         attenuation: 1.0,
         //         ray: Some(Ray::new(
@@ -271,7 +271,7 @@ impl Material for Dielectric {
 
         if let Some(refracted) = refract(ray_in.direction(), outward_normal, ni_over_nt) {
             let ray_out: Ray;
-            if random::<f64>() < schlick(cosine, refractive_index) {
+            if random::<f32>() < schlick(cosine, refractive_index) {
                 let reflected = reflect(ray_in.direction(), hit_record.normal);
                 ray_out = Ray::new(hit_record.p, reflected,  ray_in.time(), ray_in.wavelength);
             } else {
@@ -306,15 +306,15 @@ pub fn random_in_unit_vector() -> Vec3 {
 }
 
 pub fn random_in_unit_sphere() -> Vec3 {
-    const MAX: f64 = 1.0;
-    const MIN: f64 = -1.0;
+    const MAX: f32 = 1.0;
+    const MIN: f32 = -1.0;
     let mut rng = rand::thread_rng();
 
     loop {
         let p: Vec3 = Vec3::new(
-            rng.gen_range::<f64>(MIN, MAX),
-            rng.gen_range::<f64>(MIN, MAX),
-            rng.gen_range::<f64>(MIN, MAX),
+            rng.gen_range::<f32>(MIN, MAX),
+            rng.gen_range::<f32>(MIN, MAX),
+            rng.gen_range::<f32>(MIN, MAX),
         );
         if p.length_squared() >= 1.0 {
             continue;
@@ -345,7 +345,7 @@ impl<T: Texture> DiffuseLight<T> {
 }
 
 impl<T: Texture> Material for DiffuseLight<T> {
-    fn emitted(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
+    fn emitted(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32 {
         if hit_record.front_face {
             self.emit.value(ray_in, hit_record)
         } else {

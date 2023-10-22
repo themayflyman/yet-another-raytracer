@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 use std::error::Error;
-// use std::f64::consts::PI;
+// use std::f32::consts::PI;
 use std::path::Path;
 
 // use crate::clamp;
@@ -11,8 +11,8 @@ use crate::vec3::Vec3;
 use rand::Rng;
 
 pub trait Texture: Clone + Send + Sync {
-    // fn value(&self, u: f64, v: f64, p: Vec3) -> RGB;
-    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64;
+    // fn value(&self, u: f32, v: f32, p: Vec3) -> RGB;
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32;
 }
 
 #[derive(Clone)]
@@ -26,7 +26,7 @@ impl<T: HasReflectance> SolidColor<T> {
     }
 
     // #[allow(dead_code)]
-    // pub fn new_from_value(red: f64, green: f64, blue: f64) -> Self {
+    // pub fn new_from_value(red: f32, green: f32, blue: f32) -> Self {
     //     Self {
     //         color_value: RGB::new(red, green, blue),
     //     }
@@ -34,7 +34,7 @@ impl<T: HasReflectance> SolidColor<T> {
 }
 
 impl<T: HasReflectance> Texture for SolidColor<T> {
-    fn value(&self, ray_in: &Ray, _hit_record: &HitRecord) -> f64 {
+    fn value(&self, ray_in: &Ray, _hit_record: &HitRecord) -> f32 {
         return self.color_value.reflect(ray_in.wavelength);
     }
 }
@@ -55,10 +55,10 @@ impl<T: HasReflectance> CheckerTexture<T> {
 }
 
 impl<T: HasReflectance> Texture for CheckerTexture<T> {
-    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
-        let sines = f64::sin(10.0 * hit_record.p.x())
-            * f64::sin(10.0 * hit_record.p.y())
-            * f64::sin(10.0 * hit_record.p.z());
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32 {
+        let sines = f32::sin(10.0 * hit_record.p.x())
+            * f32::sin(10.0 * hit_record.p.y())
+            * f32::sin(10.0 * hit_record.p.z());
         if sines < 0.0 {
             self.odd.value(ray_in, hit_record)
         } else {
@@ -83,11 +83,11 @@ pub enum NoiseType {
 //
 #[derive(Clone)]
 pub struct Perlin {
-    ranfloat: Vec<f64>,
+    ranfloat: Vec<f32>,
     ranvec: Vec<Vec3>,
-    perm_x: Vec<i64>,
-    perm_y: Vec<i64>,
-    perm_z: Vec<i64>,
+    perm_x: Vec<i32>,
+    perm_y: Vec<i32>,
+    perm_z: Vec<i32>,
     noise_type: NoiseType,
 }
 
@@ -99,7 +99,7 @@ impl Perlin {
 
         Self {
             ranfloat: (0..Self::POINT_COUNT)
-                .map(|_| rng.gen_range::<f64>(0.0, 1.0))
+                .map(|_| rng.gen_range::<f32>(0.0, 1.0))
                 .collect(),
             ranvec: (0..Self::POINT_COUNT)
                 .map(|_| Vec3::random(-1.0, 1.0))
@@ -111,12 +111,12 @@ impl Perlin {
         }
     }
 
-    pub fn noise(&self, p: Vec3) -> f64 {
+    pub fn noise(&self, p: Vec3) -> f32 {
         match self.noise_type {
             NoiseType::Square => {
-                let i: usize = ((4.0 * p.x()) as i64 & 255).try_into().unwrap();
-                let j: usize = ((4.0 * p.y()) as i64 & 255).try_into().unwrap();
-                let k: usize = ((4.0 * p.z()) as i64 & 255).try_into().unwrap();
+                let i: usize = ((4.0 * p.x()) as i32 & 255).try_into().unwrap();
+                let j: usize = ((4.0 * p.y()) as i32 & 255).try_into().unwrap();
+                let k: usize = ((4.0 * p.z()) as i32 & 255).try_into().unwrap();
 
                 self.ranfloat[(self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]) as usize]
             }
@@ -129,18 +129,18 @@ impl Perlin {
                 v = v * v * (3.0 - 2.0 * v);
                 w = w * w * (3.0 - 2.0 * w);
 
-                let i = p.x().floor() as i64;
-                let j = p.y().floor() as i64;
-                let k = p.z().floor() as i64;
+                let i = p.x().floor() as i32;
+                let j = p.y().floor() as i32;
+                let k = p.z().floor() as i32;
 
-                let mut c = [[[0.0f64; 2]; 2]; 2];
+                let mut c = [[[0.0f32; 2]; 2]; 2];
                 for (di, i_item) in c.iter_mut().enumerate() {
                     for (dj, ij_item) in i_item.iter_mut().enumerate() {
                         for (dk, ijk_item) in ij_item.iter_mut().enumerate() {
                             *ijk_item = self.ranfloat[(self.perm_x
-                                [((i + di as i64) & 255) as usize]
-                                ^ self.perm_y[((j + dj as i64) & 255) as usize]
-                                ^ self.perm_z[((k + dk as i64) & 255) as usize])
+                                [((i + di as i32) & 255) as usize]
+                                ^ self.perm_y[((j + dj as i32) & 255) as usize]
+                                ^ self.perm_z[((k + dk as i32) & 255) as usize])
                                 as usize]
                         }
                     }
@@ -154,17 +154,17 @@ impl Perlin {
                 let v = p.y() - p.y().floor();
                 let w = p.z() - p.z().floor();
 
-                let i = p.x().floor() as i64;
-                let j = p.y().floor() as i64;
-                let k = p.z().floor() as i64;
+                let i = p.x().floor() as i32;
+                let j = p.y().floor() as i32;
+                let k = p.z().floor() as i32;
 
                 let mut c = [[[Vec3::default(); 2]; 2]; 2];
                 for (di, i_item) in c.iter_mut().enumerate() {
                     for (dj, ij_item) in i_item.iter_mut().enumerate() {
                         for (dk, ijk_item) in ij_item.iter_mut().enumerate() {
-                            *ijk_item = self.ranvec[(self.perm_x[((i + di as i64) & 255) as usize]
-                                ^ self.perm_y[((j + dj as i64) & 255) as usize]
-                                ^ self.perm_z[((k + dk as i64) & 255) as usize])
+                            *ijk_item = self.ranvec[(self.perm_x[((i + di as i32) & 255) as usize]
+                                ^ self.perm_y[((j + dj as i32) & 255) as usize]
+                                ^ self.perm_z[((k + dk as i32) & 255) as usize])
                                 as usize]
                         }
                     }
@@ -175,15 +175,15 @@ impl Perlin {
         }
     }
 
-    fn perlin_generate_perm() -> Vec<i64> {
-        let mut p: Vec<i64> = (0..Self::POINT_COUNT).map(|i| i as i64).collect();
+    fn perlin_generate_perm() -> Vec<i32> {
+        let mut p: Vec<i32> = (0..Self::POINT_COUNT).map(|i| i as i32).collect();
 
         Self::permute(&mut p);
 
         p
     }
 
-    fn permute(p: &mut Vec<i64>) {
+    fn permute(p: &mut Vec<i32>) {
         let mut rnd = rand::thread_rng();
 
         for i in (1..p.len()).rev() {
@@ -192,14 +192,14 @@ impl Perlin {
         }
     }
 
-    fn trilinear_interp(c: [[[f64; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    fn trilinear_interp(c: [[[f32; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let mut accum = 0.0;
         for (i, i_item) in c.iter().enumerate() {
             for (j, ij_item) in i_item.iter().enumerate() {
                 for (k, ijk_item) in ij_item.iter().enumerate() {
-                    accum += (i as f64 * u + (1 - i) as f64 * (1.0 - u))
-                        * (j as f64 * v + (1 - j) as f64 * (1.0 - v))
-                        * (k as f64 * w + (1 - k) as f64 * (1.0 - w))
+                    accum += (i as f32 * u + (1 - i) as f32 * (1.0 - u))
+                        * (j as f32 * v + (1 - j) as f32 * (1.0 - v))
+                        * (k as f32 * w + (1 - k) as f32 * (1.0 - w))
                         * ijk_item;
                 }
             }
@@ -208,7 +208,7 @@ impl Perlin {
         accum
     }
 
-    fn perlin_interp(c: [[[Vec3; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    fn perlin_interp(c: [[[Vec3; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
         let ww = w * w * (3.0 - 2.0 * w);
@@ -217,10 +217,10 @@ impl Perlin {
         for (i, i_item) in c.iter().enumerate() {
             for (j, ij_item) in i_item.iter().enumerate() {
                 for (k, ijk_item) in ij_item.iter().enumerate() {
-                    let weight_v = Vec3::new(u - i as f64, v - j as f64, w - k as f64);
-                    accum += (i as f64 * uu + (1.0 - i as f64) * (1.0 - uu))
-                        * (j as f64 * vv + (1.0 - j as f64) * (1.0 - vv))
-                        * (k as f64 * ww + (1.0 - k as f64) * (1.0 - ww))
+                    let weight_v = Vec3::new(u - i as f32, v - j as f32, w - k as f32);
+                    accum += (i as f32 * uu + (1.0 - i as f32) * (1.0 - uu))
+                        * (j as f32 * vv + (1.0 - j as f32) * (1.0 - vv))
+                        * (k as f32 * ww + (1.0 - k as f32) * (1.0 - ww))
                         * weight_v.dot(ijk_item);
                 }
             }
@@ -229,7 +229,7 @@ impl Perlin {
         accum
     }
 
-    pub fn turb(&self, p: Vec3, depth: usize) -> f64 {
+    pub fn turb(&self, p: Vec3, depth: usize) -> f32 {
         let mut accum = 0.0;
         let mut temp_p = p;
         let mut weight = 1.0;
@@ -247,11 +247,11 @@ impl Perlin {
 #[derive(Clone)]
 pub struct NoiseTexture {
     noise: Perlin,
-    scale: f64,
+    scale: f32,
 }
 
 impl NoiseTexture {
-    pub fn new(noise_type: NoiseType, scale: f64) -> Self {
+    pub fn new(noise_type: NoiseType, scale: f32) -> Self {
         Self {
             noise: Perlin::new(noise_type),
             scale,
@@ -260,7 +260,7 @@ impl NoiseTexture {
 }
 
 impl Texture for NoiseTexture {
-    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32 {
         match self.noise.noise_type {
             NoiseType::Net => {
                 RGB::new(1.0, 1.0, 1.0).reflect(ray_in.wavelength)
@@ -271,7 +271,7 @@ impl Texture for NoiseTexture {
                 RGB::new(1.0, 1.0, 1.0).reflect(ray_in.wavelength)
                     * 0.5
                     * (1.0
-                        + f64::sin(
+                        + f32::sin(
                             self.scale * hit_record.p.z() + 10.0 * self.noise.turb(hit_record.p, 7),
                         ))
             }
@@ -313,7 +313,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f64 {
+    fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32 {
         // If we have no texture data, then return solid cyan as a debugging aid
         if self.data.is_empty() {
             return 1.0;
@@ -323,8 +323,8 @@ impl Texture for ImageTexture {
         let uu = hit_record.u.clamp(0.0, 1.0);
         let vv = 1.0 - hit_record.v.clamp(0.0, 1.0); // Filp V to image coordinates
 
-        let mut i = (uu * f64::from(self.width)) as u32;
-        let mut j = (vv * f64::from(self.height)) as u32;
+        let mut i = uu as u32 * self.width;
+        let mut j = vv as u32 * self.height;
 
         // Clamp intefer mapping, since actual coordinates should be less than 1.0
         if i >= self.width {
@@ -338,9 +338,9 @@ impl Texture for ImageTexture {
         let pixel = (j * self.bytes_per_scanline + i * self.bytes_per_pixel) as usize;
 
         let rgb = RGB::new(
-            color_scale * self.data[pixel] as f64,
-            color_scale * self.data[pixel + 1] as f64,
-            color_scale * self.data[pixel + 2] as f64,
+            color_scale * self.data[pixel] as f32,
+            color_scale * self.data[pixel + 1] as f32,
+            color_scale * self.data[pixel + 2] as f32,
         );
         return rgb.reflect(ray_in.wavelength);
     }
@@ -349,7 +349,7 @@ impl Texture for ImageTexture {
 // #[derive(Clone, Copy)]
 // pub struct ColorStop {
 //     pub color: RGB,
-//     pub stop: f64,
+//     pub stop: f32,
 // }
 //
 // #[derive(Clone)]
@@ -366,7 +366,7 @@ impl Texture for ImageTexture {
 // }
 //
 // impl Texture for LinearGradientTexture {
-//     fn value(&self, u: f64, v: f64, p: Vec3) -> RGB {
+//     fn value(&self, u: f32, v: f32, p: Vec3) -> RGB {
 //         let percent = 1.0 - (1.0 - (v * PI).cos()) / 2.0;
 //         let end_color_stop_idx: usize = self.color_stops.iter().position(|&x| x.stop > percent).unwrap();
 //         let start_color_stop_idx = end_color_stop_idx - 1;

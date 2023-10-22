@@ -18,47 +18,47 @@ impl BVHNode {
         objects: &mut Vec<Arc<dyn Hittable>>,
         start: usize,
         end: usize,
-        time0: f64,
-        time1: f64,
+        time0: f32,
+        time1: f32,
     ) -> Self {
         // let mut rnd = rand::thread_rng();
 
         // let axis = rnd.gen_range(0, 3);
         let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| {
-            let max_x = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+            let max_x = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::max(max, centroid.x());
+                return f32::max(max, centroid.x());
             });
-            let max_y = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+            let max_y = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::max(max, centroid.y());
+                return f32::max(max, centroid.y());
             });
-            let max_z = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
+            let max_z = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::max(max, centroid.z());
+                return f32::max(max, centroid.z());
             });
-            let min_x = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+            let min_x = [a, b].iter().fold(f32::INFINITY, |min, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::min(min, centroid.x());
+                return f32::min(min, centroid.x());
             });
-            let min_y = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+            let min_y = [a, b].iter().fold(f32::INFINITY, |min, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::min(min, centroid.y());
+                return f32::min(min, centroid.y());
             });
-            let min_z = [a, b].iter().fold(f64::INFINITY, |min, &v| {
+            let min_z = [a, b].iter().fold(f32::INFINITY, |min, &v| {
                 let centroid = v.centroid(time0, time1).unwrap();
-                return f64::min(min, centroid.z());
+                return f32::min(min, centroid.z());
             });
 
             let mut axis: usize = 0;
             if max_y - min_y > max_x - min_x {
                 axis = 1;
             }
-            if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
+            if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
                 axis = 2;
             }
 
-            f64::partial_cmp(
+            f32::partial_cmp(
                 &(a.centroid(time0, time1).unwrap()[axis]),
                 &(b.centroid(time0, time1).unwrap()[axis]),
             )
@@ -112,7 +112,7 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if !self.aabb_box.hit(ray, t_min, t_max) {
             return None;
         }
@@ -132,7 +132,7 @@ impl Hittable for BVHNode {
         hit_rec
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         Some(self.aabb_box)
     }
 }
@@ -158,7 +158,7 @@ impl<L: Hittable, R: Hittable> BVHNodeStatic<L, R> {
 }
 
 impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         match self.aabb_box.hit(ray, t_min, t_max) {
             false => None,
             true => {
@@ -180,7 +180,7 @@ impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
         }
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         Some(self.aabb_box)
     }
 }
