@@ -187,7 +187,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 10;
+    let scene = 11;
 
     let filename = match scene {
         1 => {
@@ -308,6 +308,21 @@ fn main() {
             vfov = 30.0;
 
             "simple_light.png"
+        }
+
+        11 => {
+            world = Arc::new(teapot());
+            lookfrom = Vec3::new(-10.0, -10.0, 5.0);
+            lookat = Vec3::new(0.0, 1.0, 0.0);
+            aspect_ratio = 1.0;
+            image_width = 200;
+            image_height = 200;
+            background = RGB::new(0.65, 0.65, 1.0);
+            samples_per_pixel = 1000;
+            aperture = 0.1;
+            vfov = 30.0;
+
+            "teapot.png"
         }
 
         // 9 => {

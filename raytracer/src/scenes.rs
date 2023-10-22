@@ -1,5 +1,6 @@
 extern crate rand;
 
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::aarect::{XYRect, XZRect, YZRect};
@@ -7,10 +8,11 @@ use crate::box_entity::BoxEntity;
 use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
-use crate::material::{SF66, DiffuseLight, Lambertian, Metal};
+use crate::material::{DiffuseLight, Lambertian, Metal, SF66};
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
+use crate::triangle::TriangleMesh;
 use crate::vec3::Vec3;
 // use raytracer_codegen::make_static_the_next_week_final_scene;
 
@@ -426,4 +428,16 @@ pub fn the_next_week_final_scene() -> HittableList {
     )));
 
     objects
+}
+
+pub fn teapot() -> HittableList {
+    let mut objects = HittableList::new();
+    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    objects.add_object(Arc::new(TriangleMesh::from_obj(
+        Path::new("input/teapot.obj"),
+        red,
+    )));
+    // objects.add_object(Arc::new(TriangleMesh::from_obj(Path::new("input/cube.obj"), red)));
+
+    return objects;
 }
