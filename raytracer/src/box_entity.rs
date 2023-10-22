@@ -50,9 +50,9 @@ macro_rules! hit {
 
 impl<M: Material + Clone> Hittable for BoxEntity<M> {
     #[allow(unused_assignments)]
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut hit_rec: Option<HitRecord> = None;
-        let mut closest_so_far: f64 = t_max;
+        let mut closest_so_far: f32 = t_max;
 
         let hitable = &self.sides.0;
         hit!(hitable, ray, t_min, closest_so_far, hit_rec);
@@ -69,7 +69,7 @@ impl<M: Material + Clone> Hittable for BoxEntity<M> {
         hit_rec
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         Some(AxisAlignedBoundingBox::new(self.box_min, self.box_max))
     }
 }

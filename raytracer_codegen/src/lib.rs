@@ -5,12 +5,12 @@ use quote::quote;
 use rand::Rng;
 
 #[derive(Copy, Clone, Debug)]
-struct Vec3(f64, f64, f64);
+struct Vec3(f32, f32, f32);
 
 #[derive(Copy, Clone, Debug)]
 struct StillSphere {
     pub pos: Vec3,
-    pub size: f64,
+    pub size: f32,
     pub color: Vec3,
 }
 
@@ -26,12 +26,12 @@ fn generate_boxes() -> Vec<BoxEntity> {
     for i in 0..20 {
         for j in 0..20 {
             let w = 100.0;
-            let x0: f64 = -1000.0 + i as f64 * w;
-            let z0: f64 = -1000.0 + j as f64 * w;
-            let y0: f64 = 0.0;
-            let x1: f64 = x0 + w;
-            let y1: f64 = rng.gen_range(1.0, 101.0);
-            let z1: f64 = z0 + w;
+            let x0: f32 = -1000.0 + i as f32 * w;
+            let z0: f32 = -1000.0 + j as f32 * w;
+            let y0: f32 = 0.0;
+            let x1: f32 = x0 + w;
+            let y1: f32 = rng.gen_range(1.0, 101.0);
+            let z1: f32 = z0 + w;
 
             boxes.push(BoxEntity {
                 p0: Vec3(x0, y0, z0),

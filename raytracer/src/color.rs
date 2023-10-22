@@ -2,41 +2,41 @@ use rand::{thread_rng, Rng};
 
 use crate::implement_vec3_alike;
 
-pub const MIN_LAMBDA: f64 = 360.0;
-pub const MAX_LAMBDA: f64 = 720.0;
-pub const BIN_WIDTH: f64 = 10.0;
+pub const MIN_LAMBDA: f32 = 360.0;
+pub const MAX_LAMBDA: f32 = 720.0;
+pub const BIN_WIDTH: f32 = 10.0;
 pub const BIN_COUNT: usize = ((MAX_LAMBDA - MIN_LAMBDA) / BIN_WIDTH) as usize;
 pub const N_CIE_SAMPLES: usize = 471;
-pub const CIE_Y_INTERGAL: f64 = 106.856_895;
+pub const CIE_Y_INTERGAL: f32 = 106.856_895;
 
 // Reflectance is the proportion of light reflected at a wavelength
 // Multiplying the input light color by reflectance scales it appropriately
 pub trait HasReflectance: Clone + Send + Sync {
-    fn reflect(&self, wavelength: f64) -> f64;
+    fn reflect(&self, wavelength: f32) -> f32;
 }
 
-pub fn gen_wavelength(min_lambda: f64, max_lambda: f64) -> f64 {
+pub fn gen_wavelength(min_lambda: f32, max_lambda: f32) -> f32 {
     let mut rng = thread_rng();
     return rng.gen_range(min_lambda, max_lambda);
 }
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct RGB {
-    elements: [f64; 3],
+    elements: [f32; 3],
 }
 
 implement_vec3_alike!(RGB);
 
 impl RGB {
-    pub fn r(&self) -> f64 {
+    pub fn r(&self) -> f32 {
         return self.elements[0];
     }
 
-    pub fn g(&self) -> f64 {
+    pub fn g(&self) -> f32 {
         return self.elements[1];
     }
 
-    pub fn b(&self) -> f64 {
+    pub fn b(&self) -> f32 {
         return self.elements[2];
     }
 
@@ -89,22 +89,22 @@ impl RGB {
 
     pub fn gamma_corrected(&self) -> RGB {
         return RGB::new(
-            1.055 * f64::powf(self.r(), 1.0 / 2.4) - 0.055,
-            1.055 * f64::powf(self.g(), 1.0 / 2.4) - 0.055,
-            1.055 * f64::powf(self.b(), 1.0 / 2.4) - 0.055,
+            1.055 * f32::powf(self.r(), 1.0 / 2.4) - 0.055,
+            1.055 * f32::powf(self.g(), 1.0 / 2.4) - 0.055,
+            1.055 * f32::powf(self.b(), 1.0 / 2.4) - 0.055,
         );
     }
 }
 
 impl HasReflectance for RGB {
-    fn reflect(&self, wavelength: f64) -> f64 {
+    fn reflect(&self, wavelength: f32) -> f32 {
         return self.into_spectrum().reflect(wavelength);
     }
 }
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct XYZ {
-    elements: [f64; 3],
+    elements: [f32; 3],
 }
 
 implement_vec3_alike!(XYZ);
@@ -152,7 +152,7 @@ impl XYZ {
         );
     }
 
-    pub fn from_wavelength(wavelength: f64) -> XYZ {
+    pub fn from_wavelength(wavelength: f32) -> XYZ {
         let index: isize = (wavelength - MIN_LAMBDA) as isize;
 
         if index < 0 || index >= N_CIE_SAMPLES as isize {
@@ -170,7 +170,7 @@ impl XYZ {
 // This has a resolution of 10nm, with index 0 representing 400nm and 29 representing 700nm.
 #[derive(Debug, Clone, Copy)]
 pub struct Spectrum {
-    samples: [f64; BIN_COUNT],
+    samples: [f32; BIN_COUNT],
 }
 
 impl Default for Spectrum {
@@ -182,7 +182,7 @@ impl Default for Spectrum {
 }
 
 impl Spectrum {
-    pub const fn new(samples: [f64; BIN_COUNT]) -> Self {
+    pub const fn new(samples: [f32; BIN_COUNT]) -> Self {
         Self { samples }
     }
 }
@@ -200,7 +200,7 @@ impl std::ops::AddAssign for Spectrum {
     }
 }
 
-impl std::ops::Mul<Spectrum> for f64 {
+impl std::ops::Mul<Spectrum> for f32 {
     type Output = Spectrum;
 
     fn mul(self, rhs: Spectrum) -> Self::Output {
@@ -215,14 +215,14 @@ impl std::ops::Mul<Spectrum> for f64 {
 impl HasReflectance for Spectrum {
     // query the spectral reflectance value at an given wavelength, note that index is clamped to
     // handle wavelength outside the bin range.
-    fn reflect(&self, wavelength: f64) -> f64 {
+    fn reflect(&self, wavelength: f32) -> f32 {
         let mut index: usize = ((wavelength - MIN_LAMBDA) / BIN_WIDTH) as usize;
         index = index.clamp(0, BIN_COUNT - 1);
         return self.samples[index];
     }
 }
 
-pub const CIE_X: [f64; 471] = [
+pub const CIE_X: [f32; 471] = [
     // CIE X function values
     0.000_129_900_0,
     0.000_145_847_0,
@@ -697,7 +697,7 @@ pub const CIE_X: [f64; 471] = [
     0.000_001_251_141,
 ];
 
-pub const CIE_Y: [f64; 471] = [
+pub const CIE_Y: [f32; 471] = [
     // CIE Y function values
     0.000_003_917_000,
     0.000_004_393_581,
@@ -1172,7 +1172,7 @@ pub const CIE_Y: [f64; 471] = [
     0.000_000_451_810_0,
 ];
 
-pub const CIE_Z: [f64; 471] = [
+pub const CIE_Z: [f32; 471] = [
     // CIE Z function values
     0.000_606_100_0,
     0.000_680_879_2,

@@ -32,11 +32,11 @@ pub fn random_scene() -> HittableList {
     for a in -11..11 {
         for b in -11..11 {
             let mut rng = rand::thread_rng();
-            let choose_mat: f64 = rng.gen::<f64>();
+            let choose_mat: f32 = rng.gen::<f32>();
             let center: Vec3 = Vec3::new(
-                a as f64 + 0.9 * rng.gen::<f64>(),
+                a as f32 + 0.9 * rng.gen::<f32>(),
                 0.2,
-                b as f64 + 0.9 * rng.gen::<f64>(),
+                b as f32 + 0.9 * rng.gen::<f32>(),
             );
 
             if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
@@ -62,7 +62,7 @@ pub fn random_scene() -> HittableList {
                         rng.gen_range(0.5, 1.0),
                         rng.gen_range(0.5, 1.0),
                     ));
-                    let fuzz: f64 = rng.gen_range(0.0, 0.5);
+                    let fuzz: f32 = rng.gen_range(0.0, 0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
                     world.add_object(Arc::new(StillSphere::new(center, 0.2, sphere_material)));
                 } else {
@@ -326,12 +326,12 @@ pub fn the_next_week_final_scene() -> HittableList {
     for i in 0..20 {
         for j in 0..20 {
             let w = 100.0;
-            let x0: f64 = -1000.0 + i as f64 * w;
-            let z0: f64 = -1000.0 + j as f64 * w;
-            let y0: f64 = 0.0;
-            let x1: f64 = x0 + w;
-            let y1: f64 = rng.gen_range(1.0, 101.0);
-            let z1: f64 = z0 + w;
+            let x0: f32 = -1000.0 + i as f32 * w;
+            let z0: f32 = -1000.0 + j as f32 * w;
+            let y0: f32 = 0.0;
+            let x1: f32 = x0 + w;
+            let y1: f32 = rng.gen_range(1.0, 101.0);
+            let z1: f32 = z0 + w;
 
             boxes1.add_object(Arc::new(BoxEntity::new(
                 Vec3::new(x0, y0, z0),

@@ -1,6 +1,6 @@
 extern crate rand;
 
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use rand::Rng;
 
@@ -17,9 +17,9 @@ pub struct Camera {
     v: Vec3,
     #[allow(dead_code)]
     w: Vec3,
-    lens_radius: f64,
-    time0: f64,
-    time1: f64,
+    lens_radius: f32,
+    time0: f32,
+    time1: f32,
 }
 
 fn random_in_unit_disk() -> Vec3 {
@@ -27,8 +27,8 @@ fn random_in_unit_disk() -> Vec3 {
     let mut p: Vec3;
     while {
         p = Vec3::new(
-            rng.gen_range::<f64>(-1.0, 1.0),
-            rng.gen_range::<f64>(-1.0, 1.0),
+            rng.gen_range::<f32>(-1.0, 1.0),
+            rng.gen_range::<f32>(-1.0, 1.0),
             0.0,
         );
         p.length_squared() >= 1.0
@@ -36,7 +36,7 @@ fn random_in_unit_disk() -> Vec3 {
     p
 }
 
-pub fn degrees_to_radians(degrees: f64) -> f64 {
+pub fn degrees_to_radians(degrees: f32) -> f32 {
     degrees * PI / 180.0
 }
 
@@ -46,17 +46,17 @@ impl Camera {
         lookfrom: Vec3,
         lookat: Vec3,
         vup: Vec3,
-        vfov: f64,
-        aspect_ratio: f64,
-        aperture: f64,
-        focus_dist: f64,
-        time0: f64,
-        time1: f64,
+        vfov: f32,
+        aspect_ratio: f32,
+        aperture: f32,
+        focus_dist: f32,
+        time0: f32,
+        time1: f32,
     ) -> Self {
-        let theta: f64 = degrees_to_radians(vfov);
-        let h: f64 = f64::tan(theta / 2.0);
-        let viewport_height: f64 = 2.0 * h;
-        let viewport_width: f64 = aspect_ratio * viewport_height;
+        let theta: f32 = degrees_to_radians(vfov);
+        let h: f32 = f32::tan(theta / 2.0);
+        let viewport_height: f32 = 2.0 * h;
+        let viewport_width: f32 = aspect_ratio * viewport_height;
 
         let w: Vec3 = (lookfrom - lookat).unit_vector();
         let u: Vec3 = vup.cross(&w).unit_vector();
@@ -67,7 +67,7 @@ impl Camera {
         let vertical: Vec3 = focus_dist * viewport_height * v;
         let lower_left_corner: Vec3 = origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w;
 
-        let lens_radius: f64 = aperture / 2.0;
+        let lens_radius: f32 = aperture / 2.0;
 
         Self {
             lower_left_corner,
@@ -83,7 +83,7 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, s: f64, t: f64, wl: f64) -> Ray {
+    pub fn get_ray(&self, s: f32, t: f32, wl: f32) -> Ray {
         let mut rng = rand::thread_rng();
 
         let rd: Vec3 = self.lens_radius * random_in_unit_disk();
@@ -92,7 +92,7 @@ impl Camera {
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
-            rng.gen_range::<f64>(self.time0, self.time1),
+            rng.gen_range::<f32>(self.time0, self.time1),
             wl
         )
     }

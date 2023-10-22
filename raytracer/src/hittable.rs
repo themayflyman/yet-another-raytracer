@@ -9,7 +9,7 @@ use std::sync::Arc;
 use rand::Rng;
 
 pub trait Hittable: Send + Sync {
-    fn centroid(&self, time0: f64, time1: f64) -> Option<Vec3> {
+    fn centroid(&self, time0: f32, time1: f32) -> Option<Vec3> {
         if let Some(bbox) = self.bounding_box(time0, time1) {
             return Some(Vec3::new(
                 (bbox.max.x() + bbox.min.x()) / 2.0,
@@ -21,11 +21,11 @@ pub trait Hittable: Send + Sync {
         }
     }
 
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox>;
 
-    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _wavelength: f64) -> f64 {
+    fn pdf_value(&self, _origin: Vec3, _direction: Vec3, _wavelength: f32) -> f32 {
         0.0
     }
 
@@ -35,9 +35,9 @@ pub trait Hittable: Send + Sync {
 }
 
 pub struct HitRecord<'a> {
-    pub u: f64,
-    pub v: f64,
-    pub t: f64,
+    pub u: f32,
+    pub v: f32,
+    pub t: f32,
     pub p: Vec3,
     pub normal: Vec3,
     pub front_face: bool,
@@ -64,9 +64,9 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut hit_rec: Option<HitRecord> = None;
-        let mut closet_so_far: f64 = t_max;
+        let mut closet_so_far: f32 = t_max;
 
         for sphere in self.objects.iter() {
             if let Some(temp_rec) = sphere.hit(ray, t_min, closet_so_far) {
@@ -78,7 +78,7 @@ impl Hittable for HittableList {
         hit_rec
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox> {
         if self.objects.is_empty() {
             return None;
         }
@@ -100,8 +100,8 @@ impl Hittable for HittableList {
         Some(temp_box)
     }
 
-    fn pdf_value(&self, origin: Vec3, direction: Vec3, wavelength: f64) -> f64 {
-        let weight = 1.0 / self.objects.len() as f64;
+    fn pdf_value(&self, origin: Vec3, direction: Vec3, wavelength: f32) -> f32 {
+        let weight = 1.0 / self.objects.len() as f32;
 
         return self
             .objects
@@ -134,7 +134,7 @@ impl<T: Hittable> Translate<T> {
 }
 
 impl<T: Hittable> Hittable for Translate<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut hit_rec: Option<HitRecord> = None;
         let moved_ray = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time(), ray.wavelength);
 
@@ -146,7 +146,7 @@ impl<T: Hittable> Hittable for Translate<T> {
         hit_rec
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox> {
         if let Some(output_box) = self.hittable.bounding_box(time0, time1) {
             return Some(AxisAlignedBoundingBox::new(
                 output_box.min + self.offset,
@@ -159,27 +159,27 @@ impl<T: Hittable> Hittable for Translate<T> {
 
 pub struct RotateY<T: Hittable> {
     hittable: Arc<T>,
-    sin_theta: f64,
-    cos_theta: f64,
+    sin_theta: f32,
+    cos_theta: f32,
     bbox: Option<AxisAlignedBoundingBox>,
 }
 
 impl<T: Hittable> RotateY<T> {
-    pub fn new(hittable: Arc<T>, angle: f64) -> Self {
+    pub fn new(hittable: Arc<T>, angle: f32) -> Self {
         let radians = degrees_to_radians(angle);
-        let sin_theta = f64::sin(radians);
-        let cos_theta = f64::cos(radians);
+        let sin_theta = f32::sin(radians);
+        let cos_theta = f32::cos(radians);
         let bbox = match hittable.bounding_box(0.0, 1.0) {
             Some(bbox) => {
-                let mut min = Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY);
-                let mut max = Vec3::new(-f64::INFINITY, -f64::INFINITY, -f64::INFINITY);
+                let mut min = Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+                let mut max = Vec3::new(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY);
 
                 for i in 0..2 {
                     for j in 0..2 {
                         for k in 0..2 {
-                            let x = i as f64 * bbox.max.x() + (1.0 - i as f64) * bbox.min.x();
-                            let y = j as f64 * bbox.max.y() + (1.0 - j as f64) * bbox.min.y();
-                            let z = k as f64 * bbox.max.z() + (1.0 - k as f64) * bbox.min.z();
+                            let x = i as f32 * bbox.max.x() + (1.0 - i as f32) * bbox.min.x();
+                            let y = j as f32 * bbox.max.y() + (1.0 - j as f32) * bbox.min.y();
+                            let z = k as f32 * bbox.max.z() + (1.0 - k as f32) * bbox.min.z();
 
                             let newx = cos_theta * x + sin_theta * z;
                             let newz = -sin_theta * x + cos_theta * z;
@@ -187,8 +187,8 @@ impl<T: Hittable> RotateY<T> {
                             let tester = Vec3::new(newx, y, newz);
 
                             for c in 0..3 {
-                                min[c] = f64::min(min[c], tester[c]);
-                                max[c] = f64::max(max[c], tester[c]);
+                                min[c] = f32::min(min[c], tester[c]);
+                                max[c] = f32::max(max[c], tester[c]);
                             }
                         }
                     }
@@ -210,7 +210,7 @@ impl<T: Hittable> RotateY<T> {
 }
 
 impl<T: Hittable> Hittable for RotateY<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut origin = ray.origin();
         let mut direction = ray.direction();
 
@@ -245,7 +245,7 @@ impl<T: Hittable> Hittable for RotateY<T> {
         }
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         self.bbox
     }
 }
@@ -253,11 +253,11 @@ impl<T: Hittable> Hittable for RotateY<T> {
 pub struct ConstantMedium<TH: Hittable, TM: Material> {
     boundary: TH,
     phase_function: TM,
-    neg_inv_density: f64,
+    neg_inv_density: f32,
 }
 
 impl<TT: Texture, TH: Hittable> ConstantMedium<TH, Isotropic<TT>> {
-    pub fn new(boundary: TH, density: f64, texture: TT) -> Self {
+    pub fn new(boundary: TH, density: f32, texture: TT) -> Self {
         Self {
             boundary,
             phase_function: Isotropic::new(texture),
@@ -267,10 +267,10 @@ impl<TT: Texture, TH: Hittable> ConstantMedium<TH, Isotropic<TT>> {
 }
 
 impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut rng = rand::thread_rng();
-        match self.boundary.hit(ray, -f64::INFINITY, f64::INFINITY) {
-            Some(mut rec1) => match self.boundary.hit(ray, rec1.t + 0.0001, f64::INFINITY) {
+        match self.boundary.hit(ray, -f32::INFINITY, f32::INFINITY) {
+            Some(mut rec1) => match self.boundary.hit(ray, rec1.t + 0.0001, f32::INFINITY) {
                 Some(mut rec2) => {
                     if rec1.t < t_min {
                         rec1.t = t_min;
@@ -285,7 +285,7 @@ impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
 
                         let ray_length = ray.direction().length();
                         let distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
-                        let hit_distance = self.neg_inv_density * rng.gen::<f64>().ln();
+                        let hit_distance = self.neg_inv_density * rng.gen::<f32>().ln();
 
                         if hit_distance < distance_inside_boundary {
                             let t = rec1.t + hit_distance / ray_length;
@@ -315,7 +315,7 @@ impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
         }
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox> {
         self.boundary.bounding_box(time0, time1)
     }
 }
@@ -331,7 +331,7 @@ impl<T: Hittable> FlipFace<T> {
 }
 
 impl<T: Hittable> Hittable for FlipFace<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.hittable.hit(ray, t_min, t_max).map(|rec| HitRecord {
             u: rec.u,
             v: rec.v,
@@ -343,7 +343,7 @@ impl<T: Hittable> Hittable for FlipFace<T> {
         })
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AxisAlignedBoundingBox> {
         self.hittable.bounding_box(time0, time1)
     }
 }
