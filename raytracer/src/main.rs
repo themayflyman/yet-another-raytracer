@@ -28,6 +28,7 @@ mod bvh;
 mod camera;
 mod color;
 mod hittable;
+mod integrator;
 mod material;
 mod onb;
 mod pdf;
