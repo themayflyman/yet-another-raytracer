@@ -15,8 +15,8 @@ pub struct Camera {
     origin: Vec3,
     u: Vec3,
     v: Vec3,
-    #[allow(dead_code)]
-    w: Vec3,
+    // #[allow(dead_code)]
+    // w: Vec3,
     lens_radius: f32,
     time0: f32,
     time1: f32,
@@ -76,7 +76,7 @@ impl Camera {
             origin,
             u,
             v,
-            w,
+            // w,
             lens_radius,
             time0,
             time1,

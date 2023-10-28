@@ -27,12 +27,15 @@ mod box_entity;
 mod bvh;
 mod camera;
 mod color;
+mod film;
 mod hittable;
 mod integrator;
 mod material;
 mod onb;
 mod pdf;
 mod ray;
+mod sampler;
+mod scene;
 mod scenes;
 mod sphere;
 mod texture;
@@ -106,18 +109,18 @@ fn hit_sphere(center: &Vec3, radius: f32, r: &Ray) -> f32 {
 //     background
 // }
 
-fn ray_color(
+fn color(
     r: &Ray,
     world: &HittableList,
     lights: Arc<HittableList>,
     background_color: &RGB,
     max_depth: usize,
 ) -> XYZ {
-    let reflectance = ray_reflectance(r, world, lights, background_color, max_depth);
+    let reflectance = __(r, world, lights, background_color, max_depth);
     return XYZ::from_wavelength(r.wavelength) * reflectance;
 }
 
-fn ray_reflectance(
+fn __(
     ray_in: &Ray,
     world: &HittableList,
     lights: Arc<HittableList>,
@@ -135,7 +138,7 @@ fn ray_reflectance(
             if let Some(scattered_ray) = scattered.ray {
                 return emitted
                     + scattered.attenuation
-                        * ray_reflectance(
+                        * __(
                             &scattered_ray,
                             world,
                             lights,
@@ -159,7 +162,7 @@ fn ray_reflectance(
             let pdf_val = mixure_pdf.value(s.direction(), wl);
             return emitted
                 + scattered.attenuation
-                    * ray_reflectance(&s, world, lights, background_color, depth - 1)
+                    * __(&s, world, lights, background_color, depth - 1)
                     * hit_record.material.scatter_pdf(ray_in, &hit_record, &s)
                     / pdf_val;
         } else {
