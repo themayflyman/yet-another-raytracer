@@ -258,3 +258,79 @@ impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
         Some(self.aabb_box)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rand::prelude::*;
+    use super::*;
+    use crate::hittable::HittableList;
+    use crate::material::Lambertian;
+    use crate::texture::SolidColor;
+    use crate::vec3::Vec3;
+    use crate::color::RGB;
+    use crate::sphere::StillSphere;
+    use test::{black_box, Bencher};
+
+    pub fn rand_in_unit_sphere() -> Vec3 {
+        let mut rng = thread_rng();
+        let mut p: Vec3;
+        let mut gen_component = || rng.gen::<f32>().mul_add(1.0 + 1.0, -1.0);
+        while {
+            p = Vec3::new(gen_component(), gen_component(), gen_component());
+            p.length_squared() >= 1.0
+        } {}
+        p
+    }
+
+    fn bench_bvh_build_n(bench: &mut Bencher, n: u64) {
+        let mut hitables = black_box(HittableList::new());
+        let texture = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let mut rng = thread_rng();
+        for _ in 0..n {
+            let center = rand_in_unit_sphere();
+            let tmp: f32 = rng.gen();
+            let radius = tmp / 10.0 / f32::cbrt(n as f32);
+            let sphere = Arc::new(StillSphere::new(center, radius, texture.clone()));
+            hitables.add_object(sphere);
+        }
+        let hittable_size = hitables.size();
+        bench.iter(|| black_box(BVHNode::new(&mut hitables.objects, 0, hittable_size, 0.0, 0.0)));
+    }
+
+    fn bench_bvh_hit_n(bench: &mut Bencher, n: u64) {
+        let mut hitables = black_box(HittableList::new());
+        let texture = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let mut rng = thread_rng();
+        for _ in 0..n {
+            let center = rand_in_unit_sphere();
+            let tmp: f32 = rng.gen();
+            let radius = tmp / 10.0 / f32::cbrt(n as f32);
+            let sphere = Arc::new(StillSphere::new(center, radius, texture.clone()));
+            hitables.add_object(sphere);
+        }
+        let ray = black_box(Ray::new(Vec3::new(-3.0, -2.0, -1.0), Vec3::new(3.0, 2.0, 1.0), 500.0, 0.0));
+        let hittable_size = hitables.size();
+        let bvh_node = BVHNode::new(&mut hitables.objects, 0, hittable_size, 0.0, 0.0);
+        bench.iter(|| black_box(bvh_node.hit(&ray, f32::EPSILON, f32::INFINITY)) );
+    }
+
+    #[bench]
+    fn bench_bvh_build_10000(bench: &mut Bencher) {
+        bench_bvh_build_n(bench, 10000);
+    }
+
+    // #[bench]
+    // fn bench_bvh_build_100000(bench: &mut Bencher) {
+    //     bench_bvh_build_n(bench, 100000);
+    // }
+
+    #[bench]
+    fn bench_bvh_hit_n_10000(bench: &mut Bencher) {
+        bench_bvh_hit_n(bench, 10000);
+    }
+
+    // #[bench]
+    // fn bench_bvh_hit_n_100000(bench: &mut Bencher) {
+    //     bench_bvh_hit_n(bench, 100000);
+    // }
+}
