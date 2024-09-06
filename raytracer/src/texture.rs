@@ -323,8 +323,8 @@ impl Texture for ImageTexture {
         let uu = hit_record.u.clamp(0.0, 1.0);
         let vv = 1.0 - hit_record.v.clamp(0.0, 1.0); // Filp V to image coordinates
 
-        let mut i = uu as u32 * self.width;
-        let mut j = vv as u32 * self.height;
+        let mut i = (uu * self.width as f32) as u32;
+        let mut j = (vv * self.height as f32) as u32;
 
         // Clamp intefer mapping, since actual coordinates should be less than 1.0
         if i >= self.width {
