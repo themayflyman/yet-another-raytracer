@@ -8,11 +8,11 @@ use crate::box_entity::BoxEntity;
 use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
-use crate::material::{DiffuseLight, Lambertian, Metal, SF66};
+use crate::material::{DiffuseLight, Lambertian, Metal, SF66, LASF9};
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
-use crate::triangle::TriangleMesh;
+use crate::triangle::{Triangle, TriangleMesh};
 use crate::vec3::Vec3;
 // use raytracer_codegen::make_static_the_next_week_final_scene;
 
@@ -432,12 +432,65 @@ pub fn the_next_week_final_scene() -> HittableList {
 
 pub fn teapot() -> HittableList {
     let mut objects = HittableList::new();
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
+    let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+    // let glass = LASF9;
+    // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
     let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+
+    objects.add_object(Arc::new(StillSphere::new(
+                Vec3::new(0.0, 8.0, -2.0), 2.0, light)));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/teapot.obj"),
         red,
     )));
-    // objects.add_object(Arc::new(TriangleMesh::from_obj(Path::new("input/cube.obj"), red)));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [
+            (0.0, 0.0),
+            (1.0, 0.0),
+            (1.0, 1.0),
+        ],
+        material: ground.clone(),
+    }));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(-20.0, 0.0, 30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [
+            (0.0, 0.0),
+            (0.0, 1.0),
+            (1.0, 1.0),
+        ],
+        material: ground,
+    }));
+
+    return objects;
+}
+
+pub fn bunny() -> HittableList {
+    let mut objects = HittableList::new();
+    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    objects.add_object(Arc::new(TriangleMesh::from_obj(
+        Path::new("input/bunny.obj"),
+        red,
+    )));
 
     return objects;
 }

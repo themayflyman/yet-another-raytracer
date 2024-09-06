@@ -1,4 +1,8 @@
+#![feature(portable_simd)]
+#![feature(test)]
+
 extern crate rand;
+extern crate test;
 
 use std::sync::mpsc::channel;
 use std::sync::Arc;
@@ -312,7 +316,22 @@ fn main() {
 
         11 => {
             world = Arc::new(teapot());
-            lookfrom = Vec3::new(-10.0, -10.0, 5.0);
+            lookfrom = Vec3::new(0.0, 10.0, 10.0);
+            lookat = Vec3::new(0.0, 1.0, 0.0);
+            aspect_ratio = 1.0;
+            image_width = 600;
+            image_height = 600;
+            background = RGB::new(0.0, 0.0, 0.0);
+            samples_per_pixel = 1500;
+            aperture = 0.1;
+            vfov = 40.0;
+
+            "teapot.png"
+        }
+
+        12 => {
+            world = Arc::new(bunny());
+            lookfrom = Vec3::new(10.0, 10.0, 5.0);
             lookat = Vec3::new(0.0, 1.0, 0.0);
             aspect_ratio = 1.0;
             image_width = 200;
@@ -320,9 +339,9 @@ fn main() {
             background = RGB::new(0.65, 0.65, 1.0);
             samples_per_pixel = 1000;
             aperture = 0.1;
-            vfov = 30.0;
+            vfov = 40.0;
 
-            "teapot.png"
+            "bunny.png"
         }
 
         // 9 => {

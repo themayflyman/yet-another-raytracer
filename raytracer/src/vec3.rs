@@ -169,6 +169,24 @@ macro_rules! implement_vec3_alike {
                 }
             }
         }
+
+        impl std::convert::From<std::simd::f32x4> for $type {
+            fn from(v: std::simd::f32x4) -> Self {
+                $type::new(v[0], v[1], v[2])
+            }
+        }
+
+        impl std::convert::From<$type> for std::simd::f32x4 {
+            fn from(v: $type) -> Self {
+                std::simd::f32x4::from_array([ v.x(), v.y(), v.z(), v.z() ])
+            }
+        }
+
+        impl std::convert::From<$type> for std::simd::f32x8 {
+            fn from(v: $type) -> Self {
+                std::simd::f32x8::from_array([ v.x(), v.y(), v.z(), v.z(), v.x(), v.y(), v.z(), v.z() ])
+            }
+        }
     )
 }
 
@@ -211,5 +229,11 @@ impl Vec3 {
         f32::abs(self.elements[0]) < 1e-8
             && f32::abs(self.elements[0]) < 1e-8
             && f32::abs(self.elements[0]) < 1e-8
+    }
+
+    pub fn abs(&self) -> Vec3 {
+        Vec3 {
+            elements: [self.x().abs(), self.y().abs(), self.z().abs()],
+        }
     }
 }

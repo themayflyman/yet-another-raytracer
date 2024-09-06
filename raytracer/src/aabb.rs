@@ -1,3 +1,6 @@
+use std::simd::f32x4;
+use std::simd::num::SimdFloat;
+
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use std::mem::swap;
@@ -33,6 +36,73 @@ impl AxisAlignedBoundingBox {
             }
         }
         true
+    }
+
+    pub fn hit_with_another(
+        &self,
+        right: &AxisAlignedBoundingBox,
+        ray: &Ray,
+        t_min: f32,
+        t_max: f32,
+    ) -> (Option<f32>, Option<f32>) {
+        let ray_origin: f32x4 = ray.origin().into();
+        let ray_direction: f32x4 = ray.direction().into();
+
+        let inv_d: f32x4 = f32x4::splat(1.0) / ray_direction;
+        let left_t_min = {
+            let left_min = f32x4::from([
+                if inv_d[0] > 0.0 { self.min.x() } else { self.max.x() },
+                if inv_d[1] > 0.0 { self.min.y() } else { self.max.y() },
+                if inv_d[2] > 0.0 { self.min.z() } else { self.max.z() },
+                if inv_d[2] > 0.0 { self.min.z() } else { self.max.z() },
+            ]);
+            ((left_min - ray_origin) * inv_d).reduce_max()
+        };
+        let left_t_max = {
+            let left_max = f32x4::from([
+                if inv_d[0] > 0.0 { self.max.x() } else { self.min.x() },
+                if inv_d[1] > 0.0 { self.max.y() } else { self.min.y() },
+                if inv_d[2] > 0.0 { self.max.z() } else { self.min.z() },
+                if inv_d[2] > 0.0 { self.max.z() } else { self.min.z() },
+            ]);
+            ((left_max - ray_origin) * inv_d).reduce_min()
+        };
+        let right_t_min = {
+            let right_min = f32x4::from([
+                if inv_d[0] > 0.0 { right.min.x() } else { right.max.x() },
+                if inv_d[1] > 0.0 { right.min.y() } else { right.max.y() },
+                if inv_d[2] > 0.0 { right.min.z() } else { right.max.z() },
+                if inv_d[2] > 0.0 { right.min.z() } else { right.max.z() },
+            ]);
+            ((right_min - ray_origin) * inv_d).reduce_max()
+        };
+        let right_t_max = {
+            let right_max = f32x4::from([
+                if inv_d[0] > 0.0 { right.max.x() } else { right.min.x() },
+                if inv_d[1] > 0.0 { right.max.y() } else { right.min.y() },
+                if inv_d[2] > 0.0 { right.max.z() } else { right.min.z() },
+                if inv_d[2] > 0.0 { right.max.z() } else { right.min.z() },
+            ]);
+            ((right_max - ray_origin) * inv_d).reduce_min()
+        };
+
+        let left_t_min_res = {
+            if left_t_min > left_t_max || left_t_min > t_max || left_t_max < t_min {
+                None
+            } else {
+                Some(left_t_min)
+            }
+        };
+
+        let right_t_min_res = {
+            if right_t_min > right_t_max || right_t_min > t_max || right_t_max < t_min {
+                None
+            } else {
+                Some(right_t_min)
+            }
+        };
+
+        (left_t_min_res, right_t_min_res)
     }
 
     pub fn surrounding_box(box0: &AxisAlignedBoundingBox, box1: &AxisAlignedBoundingBox) -> Self {
