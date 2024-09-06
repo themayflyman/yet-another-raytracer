@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+// use std::cmp::Ordering;
 
 use crate::aabb::{surrounding_box, AxisAlignedBoundingBox};
 use crate::hittable::{HitRecord, Hittable};
@@ -24,69 +24,106 @@ impl BVHNode {
         // let mut rnd = rand::thread_rng();
 
         // let axis = rnd.gen_range(0, 3);
-        let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| {
-            let max_x = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::max(max, centroid.x());
-            });
-            let max_y = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::max(max, centroid.y());
-            });
-            let max_z = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::max(max, centroid.z());
-            });
-            let min_x = [a, b].iter().fold(f32::INFINITY, |min, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::min(min, centroid.x());
-            });
-            let min_y = [a, b].iter().fold(f32::INFINITY, |min, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::min(min, centroid.y());
-            });
-            let min_z = [a, b].iter().fold(f32::INFINITY, |min, &v| {
-                let centroid = v.centroid(time0, time1).unwrap();
-                return f32::min(min, centroid.z());
-            });
+        // let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| {
+        //     let max_x = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::max(max, centroid.x());
+        //     });
+        //     let max_y = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::max(max, centroid.y());
+        //     });
+        //     let max_z = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::max(max, centroid.z());
+        //     });
+        //     let min_x = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::min(min, centroid.x());
+        //     });
+        //     let min_y = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::min(min, centroid.y());
+        //     });
+        //     let min_z = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //         let centroid = v.centroid(time0, time1).unwrap();
+        //         return f32::min(min, centroid.z());
+        //     });
 
-            let mut axis: usize = 0;
-            if max_y - min_y > max_x - min_x {
-                axis = 1;
-            }
-            if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
-                axis = 2;
-            }
+        //     let mut axis: usize = 0;
+        //     if max_y - min_y > max_x - min_x {
+        //         axis = 1;
+        //     }
+        //     if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+        //         axis = 2;
+        //     }
 
+        //     f32::partial_cmp(
+        //         &(a.centroid(time0, time1).unwrap()[axis]),
+        //         &(b.centroid(time0, time1).unwrap()[axis]),
+        //     )
+        //     .unwrap()
+        // };
+        let left;
+        let right;
+
+        let (min_x, max_x, min_y, max_y, min_z, max_z) = objects.iter().fold(
+            (
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+            ),
+            |(min_x, max_x, min_y, max_y, min_z, max_z), obj| {
+                let centroid = obj.centroid(time0, time1).unwrap();
+                (
+                    f32::min(min_x, centroid.x()),
+                    f32::max(max_x, centroid.x()),
+                    f32::min(min_y, centroid.y()),
+                    f32::max(max_y, centroid.y()),
+                    f32::min(min_z, centroid.z()),
+                    f32::max(max_z, centroid.z()),
+                )
+            },
+        );
+        let mut axis: usize = 0;
+        if max_y - min_y > max_x - min_x {
+            axis = 1;
+        }
+        if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+            axis = 2;
+        }
+        objects.sort_unstable_by(|a, b| {
             f32::partial_cmp(
                 &(a.centroid(time0, time1).unwrap()[axis]),
                 &(b.centroid(time0, time1).unwrap()[axis]),
             )
             .unwrap()
-        };
-        let left;
-        let right;
+        });
 
         let object_span = end - start;
-
         if object_span == 1 {
             left = Some(objects[start].clone());
             right = Some(objects[start].clone());
         } else if object_span == 2 {
-            let obj0 = objects[start].clone();
-            let obj1 = objects[start + 1].clone();
-            match comparator(&obj0, &obj1) {
-                Ordering::Less => {
-                    left = Some(obj0);
-                    right = Some(obj1);
-                }
-                _ => {
-                    left = Some(obj1);
-                    right = Some(obj0);
-                }
-            }
+            // let obj0 = objects[start].clone();
+            // let obj1 = objects[start + 1].clone();
+            // match comparator(&obj0, &obj1) {
+            //     Ordering::Less => {
+            //         left = Some(obj0);
+            //         right = Some(obj1);
+            //     }
+            //     _ => {
+            //         left = Some(obj1);
+            //         right = Some(obj0);
+            //     }
+            // }
+            left = Some(objects[start].clone());
+            right = Some(objects[start + 1].clone());
         } else {
-            objects.sort_unstable_by(comparator);
+            // objects.sort_unstable_by(comparator);
             let mid = start + object_span / 2;
             left = Some(Arc::new(Self::new(objects, start, mid, time0, time1)));
             right = Some(Arc::new(Self::new(objects, mid, end, time0, time1)));
