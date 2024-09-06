@@ -130,7 +130,7 @@ impl TriangleMesh {
             } else {
                 mesh.indices.iter().map(|_| None).collect()
             };
-            let mesh_uv: Vec<Option<(f32, f32)>> = if !mesh.normals.is_empty() {
+            let mesh_uv: Vec<Option<(f32, f32)>> = if !mesh.texcoords.is_empty() {
                 mesh.texcoords
                     .chunks_exact(2)
                     .map(|uv| Some((uv[0].into(), uv[1].into())))
