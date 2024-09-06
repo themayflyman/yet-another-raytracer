@@ -89,7 +89,7 @@ impl Pdf for MixurePDF {
     }
 
     fn generate(&self) -> Vec3 {
-        if rand::thread_rng().gen_range::<f32>(0.0, 1.0) < 0.5 {
+        if rand::thread_rng().gen_range(0.0..1.0) < 0.5 {
             self.p0.generate()
         } else {
             self.p1.generate()

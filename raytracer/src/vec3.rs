@@ -34,9 +34,9 @@ macro_rules! implement_vec3_alike {
                 let mut rng = rand::thread_rng();
                 $type {
                     elements: [
-                        rng.gen_range(low, high),
-                        rng.gen_range(low, high),
-                        rng.gen_range(low, high),
+                        rng.gen_range(low..high),
+                        rng.gen_range(low..high),
+                        rng.gen_range(low..high),
                     ],
                 }
             }

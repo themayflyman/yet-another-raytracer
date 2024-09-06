@@ -42,9 +42,9 @@ pub fn random_scene() -> HittableList {
             if (center - Vec3::new(4.0, 0.2, 0.0)).length() > 0.9 {
                 if choose_mat < 0.8 {
                     let albedo = SolidColor::new(RGB::new(
-                        rng.gen_range(-1.0, 1.0),
-                        rng.gen_range(-1.0, 1.0),
-                        rng.gen_range(-1.0, 1.0),
+                        rng.gen_range(-1.0..1.0),
+                        rng.gen_range(-1.0..1.0),
+                        rng.gen_range(-1.0..1.0),
                     ));
                     let sphere_material = Lambertian::new(albedo);
                     // let center2 = center + Vec3::new(0.0, rng.gen_range(0.0, 0.5), 0.0);
@@ -58,11 +58,11 @@ pub fn random_scene() -> HittableList {
                     )));
                 } else if choose_mat < 0.95 {
                     let albedo = SolidColor::new(RGB::new(
-                        rng.gen_range(0.5, 1.0),
-                        rng.gen_range(0.5, 1.0),
-                        rng.gen_range(0.5, 1.0),
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
+                        rng.gen_range(0.5..1.0),
                     ));
-                    let fuzz: f32 = rng.gen_range(0.0, 0.5);
+                    let fuzz: f32 = rng.gen_range(0.0..0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
                     world.add_object(Arc::new(StillSphere::new(center, 0.2, sphere_material)));
                 } else {
@@ -330,7 +330,7 @@ pub fn the_next_week_final_scene() -> HittableList {
             let z0: f32 = -1000.0 + j as f32 * w;
             let y0: f32 = 0.0;
             let x1: f32 = x0 + w;
-            let y1: f32 = rng.gen_range(1.0, 101.0);
+            let y1: f32 = rng.gen_range(1.0..101.0);
             let z1: f32 = z0 + w;
 
             boxes1.add_object(Arc::new(BoxEntity::new(

@@ -17,7 +17,7 @@ pub trait HasReflectance: Clone + Send + Sync {
 
 pub fn gen_wavelength(min_lambda: f32, max_lambda: f32) -> f32 {
     let mut rng = thread_rng();
-    return rng.gen_range(min_lambda, max_lambda);
+    return rng.gen_range(min_lambda..max_lambda);
 }
 
 #[derive(Default, Debug, Clone, Copy)]

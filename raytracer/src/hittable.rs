@@ -116,7 +116,7 @@ impl Hittable for HittableList {
         } else if self.objects.len() == 1 {
             return self.objects[0].random(origin);
         } else {
-            return self.objects[rand::thread_rng().gen_range::<usize>(0, self.objects.len() - 1)]
+            return self.objects[rand::thread_rng().gen_range(0..self.objects.len() - 1)]
                 .random(origin);
         }
     }

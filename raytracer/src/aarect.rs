@@ -159,9 +159,9 @@ impl<M: Material> Hittable for XZRect<M> {
 
     fn random(&self, origin: Vec3) -> Vec3 {
         let random_point = Vec3::new(
-            rand::thread_rng().gen_range::<f32>(self.x0, self.x1),
+            rand::thread_rng().gen_range(self.x0..self.x1),
             self.k,
-            rand::thread_rng().gen_range::<f32>(self.z0, self.z1),
+            rand::thread_rng().gen_range(self.z0..self.z1),
         );
         random_point - origin
     }

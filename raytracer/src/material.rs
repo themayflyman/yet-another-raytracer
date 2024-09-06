@@ -312,9 +312,9 @@ pub fn random_in_unit_sphere() -> Vec3 {
 
     loop {
         let p: Vec3 = Vec3::new(
-            rng.gen_range::<f32>(MIN, MAX),
-            rng.gen_range::<f32>(MIN, MAX),
-            rng.gen_range::<f32>(MIN, MAX),
+            rng.gen_range(MIN..MAX),
+            rng.gen_range(MIN..MAX),
+            rng.gen_range(MIN..MAX),
         );
         if p.length_squared() >= 1.0 {
             continue;

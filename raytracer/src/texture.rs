@@ -99,7 +99,7 @@ impl Perlin {
 
         Self {
             ranfloat: (0..Self::POINT_COUNT)
-                .map(|_| rng.gen_range::<f32>(0.0, 1.0))
+                .map(|_| rng.gen_range(0.0..1.0))
                 .collect(),
             ranvec: (0..Self::POINT_COUNT)
                 .map(|_| Vec3::random(-1.0, 1.0))
@@ -187,7 +187,7 @@ impl Perlin {
         let mut rnd = rand::thread_rng();
 
         for i in (1..p.len()).rev() {
-            let target = rnd.gen_range::<usize>(0, i);
+            let target: usize = rnd.gen_range(0..i);
             p.swap(i, target);
         }
     }

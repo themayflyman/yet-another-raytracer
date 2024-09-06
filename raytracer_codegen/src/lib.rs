@@ -30,7 +30,7 @@ fn generate_boxes() -> Vec<BoxEntity> {
             let z0: f32 = -1000.0 + j as f32 * w;
             let y0: f32 = 0.0;
             let x1: f32 = x0 + w;
-            let y1: f32 = rng.gen_range(1.0, 101.0);
+            let y1: f32 = rng.gen_range(1.0..101.0);
             let z1: f32 = z0 + w;
 
             boxes.push(BoxEntity {
@@ -47,9 +47,9 @@ fn generate_spheres() -> Vec<StillSphere> {
     let mut spheres = vec![];
     for _ in 0..1000 {
         let pos = Vec3 (
-            rng.gen_range(0.0, 165.0),
-            rng.gen_range(0.0, 165.0),
-            rng.gen_range(0.0, 165.0),
+            rng.gen_range(0.0..165.0),
+            rng.gen_range(0.0..165.0),
+            rng.gen_range(0.0..165.0),
         );
         let size = 10.0;
         spheres.push(StillSphere {
@@ -97,7 +97,7 @@ fn construct_box_bvh(mut boxes: Vec<BoxEntity>) -> TokenStream {
             quote! { Arc::new(BVHNodeStatic::construct(#box_left, #box_right)) }
         }
         _ => {
-            let axis = rand::thread_rng().gen_range(0, 3);
+            let axis = rand::thread_rng().gen_range(0..3);
             boxes.sort_by(|a, b| match axis {
                 0 => a.p0.0.partial_cmp(&b.p0.0).unwrap(),
                 1 => a.p0.1.partial_cmp(&b.p0.1).unwrap(),
@@ -122,7 +122,7 @@ fn construct_sphere_bvh(mut spheres: Vec<StillSphere>) -> TokenStream {
             quote! { Arc::new(BVHNodeStatic::construct(#sphere_left, #sphere_right)) }
         }
         _ => {
-            let axis = rand::thread_rng().gen_range(0, 3);
+            let axis = rand::thread_rng().gen_range(0..3);
             spheres.sort_by(|a, b| match axis {
                 0 => a.pos.0.partial_cmp(&b.pos.0).unwrap(),
                 1 => a.pos.1.partial_cmp(&b.pos.1).unwrap(),
