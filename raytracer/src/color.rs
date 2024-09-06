@@ -1,5 +1,7 @@
 use rand::{thread_rng, Rng};
 
+use std::convert::{Into, From};
+
 use crate::implement_vec3_alike;
 
 pub const MIN_LAMBDA: f32 = 360.0;
@@ -93,6 +95,56 @@ impl RGB {
             1.055 * f32::powf(self.g(), 1.0 / 2.4) - 0.055,
             1.055 * f32::powf(self.b(), 1.0 / 2.4) - 0.055,
         );
+    }
+}
+
+impl Into<XYZ> for RGB {
+    fn into(self) -> XYZ {
+        return XYZ::new(
+            0.4969210 * self.r() + 0.3390897 * self.g() + 0.1639893 * self.b(),
+            0.2562249 * self.r() + 0.6781794 * self.g() + 0.0655957 * self.b(),
+            0.0232932 * self.r() + 0.1130299 * self.g() + 0.8636769 * self.b(),
+        );
+    }
+}
+
+impl Into<Spectrum> for RGB {
+    fn into(self) -> Spectrum {
+        let red = self.r();
+        let green = self.g();
+        let blue = self.b();
+        let mut spectrum = Spectrum::new([0.0; BIN_COUNT]);
+        if red <= green && red <= blue {
+            spectrum += red * WHITE_SPECTRUM;
+            if green <= blue {
+                spectrum += (green - red) * CYAN_SPECTRUM;
+                spectrum += (blue - green) * BLUE_SPECTRUM;
+            } else {
+                spectrum += (blue - red) * CYAN_SPECTRUM;
+                spectrum += (green - blue) * GREEN_SPECTRUM;
+            }
+        } else if green <= red && green <= blue {
+            spectrum += green * WHITE_SPECTRUM;
+            if red <= blue {
+                spectrum += (red - green) * MAGENTA_SPECTRUM;
+                spectrum += (blue - red) * BLUE_SPECTRUM;
+            } else {
+                spectrum += (blue - green) * MAGENTA_SPECTRUM;
+                spectrum += (red - blue) * RED_SPECTRUM;
+            }
+        } else {
+            // blue <= red && blue <= green
+            spectrum += blue * WHITE_SPECTRUM;
+            if red <= green {
+                spectrum += (red - blue) * YELLOW_SPECTRUM;
+                spectrum += (green - red) * GREEN_SPECTRUM;
+            } else {
+                spectrum += (green - blue) * YELLOW_SPECTRUM;
+                spectrum += (red - green) * RED_SPECTRUM;
+            }
+        }
+
+        return spectrum;
     }
 }
 

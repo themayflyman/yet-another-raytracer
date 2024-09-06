@@ -104,6 +104,7 @@ impl<T: Texture> Material for Metal<T> {
 //     r_out_perp + r_out_parallel
 // }
 
+#[allow(dead_code)]
 fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
     let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
     r0 = r0 * r0;
@@ -121,6 +122,7 @@ pub struct Dielectric {
 }
 
 // https://refractiveindex.info/?shelf=glass&book=BAF10&page=SCHOTT
+#[allow(dead_code)]
 pub static BAF10: Dielectric = Dielectric {
     b1: 1.5851495,
     b2: 0.143559385,
@@ -131,6 +133,7 @@ pub static BAF10: Dielectric = Dielectric {
 };
 
 // https://refractiveindex.info/?shelf=glass&book=BK7&page=SCHOTT
+#[allow(dead_code)]
 pub static BK7: Dielectric = Dielectric {
     b1: 1.03961212,
     b2: 0.231792344,
@@ -141,16 +144,18 @@ pub static BK7: Dielectric = Dielectric {
 };
 
 // https://refractiveindex.info/?shelf=glass&book=SF11&page=SCHOTT
+#[allow(dead_code)]
 pub static SF11: Dielectric = Dielectric {
     b1: 1.73759695,
     b2: 0.313747346,
     b3: 1.89878101,
-    c1: 0.013188707,
-    c2: 0.0623068142,
-    c3: 155.23629,
+    c1: 0.013188707 * 1e6,
+    c2: 0.0623068142 * 1e6,
+    c3: 155.23629 * 1e6,
 };
 
 // https://refractiveindex.info/?shelf=glass&book=FK51Apage=SCHOTT
+#[allow(dead_code)]
 pub static FK51A: Dielectric = Dielectric {
     b1: 0.971247817,
     b2: 0.216901417,
@@ -161,6 +166,7 @@ pub static FK51A: Dielectric = Dielectric {
 };
 
 // https://refractiveindex.info/?shelf=glass&book=LASF9&page=SCHOTT
+#[allow(dead_code)]
 pub static LASF9: Dielectric = Dielectric {
     b1: 2.00029547,
     b2: 0.298926886,
@@ -171,13 +177,14 @@ pub static LASF9: Dielectric = Dielectric {
 };
 
 // https://refractiveindex.info/?shelf=glass&book=SCHOTT-SF&page=N-SF66
+#[allow(dead_code)]
 pub static SF66: Dielectric = Dielectric {
     b1: 2.0245976,
     b2: 0.470187196,
     b3: 2.59970433,
-    c1: 0.0147053225,
-    c2: 0.0692998276,
-    c3: 161.817601,
+    c1: 0.0147053225 * 1e6,
+    c2: 0.0692998276 * 1e6,
+    c3: 161.817601 * 1e6,
 };
 
 // impl Dielectric {
