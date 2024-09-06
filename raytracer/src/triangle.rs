@@ -1,4 +1,3 @@
-use std::f32::EPSILON;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -53,7 +52,7 @@ impl<M: Material> Hittable for Triangle<M> {
         let h = ray.direction().cross(&edge2);
         let a = edge1.dot(&h);
 
-        if a > -EPSILON && a < EPSILON {
+        if a > -f32::EPSILON && a < f32::EPSILON {
             return None; // This ray is parallel to this triangle.
         }
 
