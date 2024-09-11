@@ -66,16 +66,12 @@ impl<M: Material> Hittable for StillSphere<M> {
         }
 
         let p: Vec3 = ray.at(t);
-        let outward_normal: Vec3 = (p - self.center()) / self.radius();
-        let normal: Vec3;
-        let front_face: bool;
-        if ray.direction().dot(&outward_normal) < 0.0 {
-            normal = outward_normal;
-            front_face = true;
+        let outward_normal: Vec3 = (p - self.center()) / self.radius().abs();
+        let (normal, front_face) = if self.radius() < 0.0 {
+            (-outward_normal, ray.direction().dot(&outward_normal) > 0.0)
         } else {
-            normal = -outward_normal;
-            front_face = false;
-        }
+            (outward_normal, ray.direction().dot(&outward_normal) < 0.0)
+        };
         let (u, v) = get_sphere_uv(outward_normal);
 
         Some(HitRecord {
