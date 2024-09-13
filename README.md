@@ -20,8 +20,3 @@ Ray tracer implementation in Rust, based on [Ray Tracing in One Weekend Book Ser
 ![cornel box that uses mixture pdf to reduce noise](/output/cornell_box.png)
 
 ![linear gradient texture](/output/two_perlin_spheres.png)
-
-## TODOs
-- [ ] Implement simple benchmark
-- [ ] Try other more efficient BVH implementations
-- [ ] Use simd for better performance
