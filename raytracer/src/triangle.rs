@@ -2,9 +2,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::aabb::AxisAlignedBoundingBox;
-use crate::bvh::BVHNode;
 use crate::hittable::{HitRecord, Hittable, HittableList};
 use crate::material::Material;
+use crate::qbvh::QBVH;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
@@ -105,7 +105,7 @@ impl<M: Material> Hittable for Triangle<M> {
 #[derive(Clone)]
 pub struct TriangleMesh {
     // to accelerate triangle hit test
-    pub bvh: BVHNode,
+    pub bvh: QBVH,
 }
 
 impl TriangleMesh {
@@ -166,8 +166,8 @@ impl TriangleMesh {
             }
         }
 
-        let size = read_mesh.size();
-        let bvh = BVHNode::new(&mut read_mesh.objects, 0, size, 0.0, 0.0);
+        // let size = read_mesh.size();
+        let bvh = QBVH::new(read_mesh.objects);
 
         return Self { bvh };
     }

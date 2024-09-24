@@ -35,6 +35,7 @@ mod hittable;
 mod material;
 mod onb;
 mod pdf;
+mod qbvh;
 mod ray;
 mod scenes;
 mod sphere;
@@ -189,7 +190,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 14;
+    let scene = 12;
 
     let filename = match scene {
         1 => {
@@ -322,10 +323,10 @@ fn main() {
             lookfrom = Vec3::new(0.0, 10.0, 10.0);
             lookat = Vec3::new(0.0, 1.0, 0.0);
             aspect_ratio = 1.0;
-            image_width = 600;
-            image_height = 600;
+            image_width = 1000;
+            image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 1500;
+            samples_per_pixel = 10000;
             aperture = 0.1;
             vfov = 40.0;
 
@@ -334,15 +335,15 @@ fn main() {
 
         12 => {
             world = Arc::new(bunny());
-            lookfrom = Vec3::new(10.0, 10.0, 5.0);
+            lookfrom = Vec3::new(0.0, 2.0, 10.0);
             lookat = Vec3::new(0.0, 1.0, 0.0);
             aspect_ratio = 1.0;
-            image_width = 200;
-            image_height = 200;
-            background = RGB::new(0.65, 0.65, 1.0);
+            image_width = 1000;
+            image_height = 1000;
+            background = RGB::new(0.0, 0.0, 0.0);
             samples_per_pixel = 1000;
             aperture = 0.1;
-            vfov = 40.0;
+            vfov = 30.0;
 
             "bunny.png"
         }
@@ -372,7 +373,7 @@ fn main() {
             image_height = 1000;
             aspect_ratio = (image_width / image_height) as f32;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 1000;
+            samples_per_pixel = 10000;
             aperture = 0.1;
             vfov = 30.0;
 

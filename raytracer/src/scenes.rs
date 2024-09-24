@@ -530,10 +530,45 @@ pub fn teapot() -> HittableList {
 
 pub fn bunny() -> HittableList {
     let mut objects = HittableList::new();
-    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    let glass = SF66;
+    let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/bunny.obj"),
-        red,
+        glass,
+    )));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)],
+        material: ground.clone(),
+    }));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(-20.0, 0.0, 30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
+        material: ground,
+    }));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 6.0, -2.0),
+        2.0,
+        light,
     )));
 
     return objects;
