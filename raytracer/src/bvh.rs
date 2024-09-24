@@ -218,6 +218,7 @@ pub struct BVHNodeStatic<L: Hittable, R: Hittable> {
 }
 
 impl<L: Hittable, R: Hittable> BVHNodeStatic<L, R> {
+    #[allow(dead_code)]
     pub fn construct(left: Arc<L>, right: Arc<R>) -> Self {
         let aabb_box = AxisAlignedBoundingBox::surrounding_box(
             left.bounding_box(0.0, 1.0).as_ref().unwrap(),
