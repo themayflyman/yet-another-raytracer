@@ -2,9 +2,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::aabb::AxisAlignedBoundingBox;
-use crate::hittable::{HitRecord, Hittable, HittableList};
+use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
-use crate::qbvh::QBVH;
+use crate::qbvh::L4QBVH;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
@@ -79,8 +79,7 @@ impl<M: Material> Hittable for Triangle<M> {
         }
         let p: Vec3 = ray.at(t);
         let w = 1.0 - u - v;
-        let outward_normal =
-            self.normals[0] * v + self.normals[1] * u + self.normals[2] * w;
+        let outward_normal = self.normals[0] * v + self.normals[1] * u + self.normals[2] * w;
         let normal: Vec3;
         let front_face: bool;
         if ray.direction().dot(&outward_normal) < 0.0 {
@@ -103,17 +102,17 @@ impl<M: Material> Hittable for Triangle<M> {
 }
 
 #[derive(Clone)]
-pub struct TriangleMesh {
+pub struct TriangleMesh<M: Material> {
     // to accelerate triangle hit test
-    pub bvh: QBVH,
+    pub bvh: L4QBVH<M>,
 }
 
-impl TriangleMesh {
-    pub fn from_obj(obj_path: &Path, material: impl Material + Clone + 'static) -> Self {
+impl<M: Material + Clone> TriangleMesh<M> {
+    pub fn from_obj(obj_path: &Path, material: M) -> Self {
         let (models, _materials) =
             tobj::load_obj(obj_path, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load OBJ file");
 
-        let mut read_mesh = HittableList::new();
+        let mut read_mesh: Vec<Arc<Triangle<M>>> = vec![];
         for model in models.iter() {
             let mesh = &model.mesh;
             let mesh_vertices: Vec<Vec3> = mesh
@@ -144,7 +143,9 @@ impl TriangleMesh {
                     mesh_vertices[mesh.indices[i * 3 + 1] as usize],
                     mesh_vertices[mesh.indices[i * 3 + 2] as usize],
                 ];
-                let default_normal = (vertices[1] - vertices[0]).cross(&(vertices[2] - vertices[0])).unit_vector();
+                let default_normal = (vertices[1] - vertices[0])
+                    .cross(&(vertices[2] - vertices[0]))
+                    .unit_vector();
                 let normals = [
                     mesh_normals[mesh.indices[i * 3] as usize].unwrap_or(default_normal),
                     mesh_normals[mesh.indices[i * 3 + 1] as usize].unwrap_or(default_normal),
@@ -162,18 +163,18 @@ impl TriangleMesh {
                     uv,
                     material: material.clone(),
                 };
-                read_mesh.add_object(Arc::new(triangle));
+                read_mesh.push(Arc::new(triangle));
             }
         }
 
         // let size = read_mesh.size();
-        let bvh = QBVH::new(read_mesh.objects);
+        let bvh = L4QBVH::new(read_mesh);
 
         return Self { bvh };
     }
 }
 
-impl Hittable for TriangleMesh {
+impl<M: Material> Hittable for TriangleMesh<M> {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         return self.bvh.hit(ray, t_min, t_max);
     }
