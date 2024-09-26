@@ -192,7 +192,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 12;
+    let scene = 11;
 
     let filename = match scene {
         1 => {
@@ -318,7 +318,7 @@ fn main() {
         11 => {
             world = Arc::new(teapot());
             lights.add_object(Arc::new(StillSphere::new(
-                Vec3::new(0.0, 8.0, -2.0),
+                Vec3::new(0.0, 10.0, -2.0),
                 2.0,
                 NoMaterial,
             )));
@@ -328,22 +328,23 @@ fn main() {
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 10000;
-            aperture = 0.1;
-            vfov = 40.0;
+            samples_per_pixel = 5000;
+            aperture = 0.01;
+            vfov = 30.0;
 
             "teapot.png"
         }
 
         12 => {
             world = Arc::new(bunny());
+            lights.add_object(Arc::new(StillSphere::new( Vec3::new(0.0, 6.0, 2.0), 2.0, NoMaterial)));
             lookfrom = Vec3::new(0.0, 2.0, 10.0);
             lookat = Vec3::new(0.0, 1.0, 0.0);
             aspect_ratio = 1.0;
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 1000;
+            samples_per_pixel = 50;
             aperture = 0.1;
             vfov = 30.0;
 
@@ -375,29 +376,53 @@ fn main() {
             image_height = 1000;
             aspect_ratio = (image_width / image_height) as f32;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 10000;
+            samples_per_pixel = 5000;
             aperture = 0.1;
             vfov = 30.0;
 
             "sycee.png"
         }
 
-        // 9 => {
-        //     world = Arc::new(static_the_next_week_final_scene());
-        //     lights.add_object(Arc::new(XZRect::new(
-        //         123.0, 423.0, 147.0, 412.0, 554.0, NoMaterial,
-        //     )));
-        //     aspect_ratio = 1.0;
-        //     image_width = 800;
-        //     image_height = 800;
-        //     samples_per_pixel = 10000;
-        //     background = RGB::default();
-        //     lookfrom = Vec3::new(478.0, 278.0, -600.0);
-        //     lookat = Vec3::new(278.0, 278.0, 0.0);
-        //     vfov = 40.0;
+        15 => {
+            world = Arc::new(david());
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, 800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(-1200.0, 1300.0, 800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, -1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lookfrom = Vec3::new(-200.0, 100.0, 400.0);
+            lookat = Vec3::new(0.0, 100.0, 0.0);
+            aspect_ratio = 1.0;
+            image_width = 1000;
+            image_height = 1000;
+            background = RGB::new(0.0, 0.0, 0.0);
+            samples_per_pixel = 100;
+            aperture = 0.001;
+            vfov = 30.0;
 
-        //     "the_next_week_final_static_scene.png"
-        // }
+            "david.png"
+        }
+
         _ => {
             panic!("No matched scene");
         }

@@ -1,6 +1,9 @@
+use core::f32;
+
 // use rand::Rng;
 // use std::cmp::PartialEq;
 // use std::ops::{Add, Div, Index, IndexMut, Mul, Neg, Sub};
+use rand::Rng;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -9,7 +12,7 @@ pub struct Vec3 {
 
 #[macro_export]
 macro_rules! implement_vec3_alike {
-    ($type:tt) => (
+    ($type:tt) => {
         impl $type {
             pub fn new(e0: f32, e1: f32, e2: f32) -> $type {
                 $type {
@@ -59,11 +62,7 @@ macro_rules! implement_vec3_alike {
         impl std::ops::AddAssign for $type {
             fn add_assign(&mut self, rhs: Self) {
                 *self = Self {
-                    elements: [
-                        self.x() + rhs.x(),
-                        self.y() + rhs.y(),
-                        self.z() + rhs.z(),
-                    ],
+                    elements: [self.x() + rhs.x(), self.y() + rhs.y(), self.z() + rhs.z()],
                 }
             }
         }
@@ -73,11 +72,7 @@ macro_rules! implement_vec3_alike {
 
             fn sub(self, rhs: $type) -> Self::Output {
                 $type {
-                    elements: [
-                        self.x() - rhs.x(),
-                        self.y() - rhs.y(),
-                        self.z() - rhs.z(),
-                    ],
+                    elements: [self.x() - rhs.x(), self.y() - rhs.y(), self.z() - rhs.z()],
                 }
             }
         }
@@ -87,11 +82,7 @@ macro_rules! implement_vec3_alike {
 
             fn mul(self, rhs: $type) -> Self::Output {
                 $type {
-                    elements: [
-                        self.x() * rhs.x(),
-                        self.y() * rhs.y(),
-                        self.z() * rhs.z(),
-                    ],
+                    elements: [self.x() * rhs.x(), self.y() * rhs.y(), self.z() * rhs.z()],
                 }
             }
         }
@@ -178,16 +169,25 @@ macro_rules! implement_vec3_alike {
 
         impl std::convert::From<$type> for std::simd::f32x4 {
             fn from(v: $type) -> Self {
-                std::simd::f32x4::from_array([ v.x(), v.y(), v.z(), v.z() ])
+                std::simd::f32x4::from_array([v.x(), v.y(), v.z(), v.z()])
             }
         }
 
         impl std::convert::From<$type> for std::simd::f32x8 {
             fn from(v: $type) -> Self {
-                std::simd::f32x8::from_array([ v.x(), v.y(), v.z(), v.z(), v.x(), v.y(), v.z(), v.z() ])
+                std::simd::f32x8::from_array([
+                    v.x(),
+                    v.y(),
+                    v.z(),
+                    v.z(),
+                    v.x(),
+                    v.y(),
+                    v.z(),
+                    v.z(),
+                ])
             }
         }
-    )
+    };
 }
 
 implement_vec3_alike!(Vec3);
@@ -209,6 +209,14 @@ impl Vec3 {
                 self.z() / self.length(),
             ],
         }
+    }
+
+    pub fn random_unit_vector<R: Rng>(rng: &mut R) -> Self {
+        let a = rng.gen_range(0.0..2.0 * f32::consts::PI);
+        let z = rng.gen_range(-1.0..1.0);
+        let r = f32::sqrt(1.0 - z * z);
+
+        Vec3::new(r * a.cos(), r * a.sin(), z)
     }
 
     pub fn dot(&self, other: &Vec3) -> f32 {

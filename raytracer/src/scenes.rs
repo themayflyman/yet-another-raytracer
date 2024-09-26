@@ -488,8 +488,8 @@ pub fn teapot() -> HittableList {
     // let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
 
     objects.add_object(Arc::new(StillSphere::new(
-        Vec3::new(0.0, 5.0, -2.0),
-        5.0,
+        Vec3::new(0.0, 10.0, -2.0),
+        2.0,
         light,
     )));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
@@ -566,8 +566,45 @@ pub fn bunny() -> HittableList {
         material: ground,
     }));
     objects.add_object(Arc::new(StillSphere::new(
-        Vec3::new(0.0, 6.0, -2.0),
+Vec3::new(0.0, 6.0, -2.0),
         2.0,
+        light.clone(),
+    )));
+
+    return objects;
+}
+
+pub fn david() -> HittableList {
+    let mut objects = HittableList::new();
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
+    let white = Lambertian::new(SolidColor::new(RGB::new(1.0, 1.0, 1.0)));
+    objects.add_object(Arc::new(TriangleMesh::from_obj(
+        Path::new("input/david.obj"),
+        white,
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(1200.0, 1300.0, 800.0),
+        700.0,
+        light.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(-1200.0, 1300.0, 800.0),
+        700.0,
+        light.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(1200.0, 1300.0, -800.0),
+        700.0,
+        light.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(1200.0, -1300.0, -800.0),
+        700.0,
+        light.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(1200.0, 1300.0, -800.0),
+        700.0,
         light,
     )));
 
