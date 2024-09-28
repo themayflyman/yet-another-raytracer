@@ -136,8 +136,7 @@ fn ray_reflectance(
 
         if let Some(scattered) = hit_record.material.scatter(ray_in, &hit_record) {
             if let Some(scattered_ray) = scattered.ray {
-                return emitted
-                    + scattered.attenuation
+                return scattered.attenuation
                         * ray_reflectance(
                             &scattered_ray,
                             world,
@@ -160,8 +159,7 @@ fn ray_reflectance(
             let wl = gen_wavelength(ray_in.wavelength - 10.0, ray_in.wavelength + 10.0);
             let s = Ray::new(hit_record.p, mixure_pdf.generate(), ray_in.time(), wl);
             let pdf_val = mixure_pdf.value(s.direction(), wl);
-            return emitted
-                + scattered.attenuation
+            return scattered.attenuation
                     * ray_reflectance(&s, world, lights, background_color, depth - 1)
                     * hit_record.material.scatter_pdf(ray_in, &hit_record, &s)
                     / pdf_val;
@@ -191,7 +189,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 11;
+    let scene = 14;
 
     let filename = match scene {
         1 => {
@@ -316,6 +314,11 @@ fn main() {
 
         11 => {
             world = Arc::new(teapot());
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(0.0, 8.0, -2.0),
+                2.0,
+                NoMaterial,
+            )));
             lookfrom = Vec3::new(0.0, 10.0, 10.0);
             lookat = Vec3::new(0.0, 1.0, 0.0);
             aspect_ratio = 1.0;
@@ -342,6 +345,38 @@ fn main() {
             vfov = 40.0;
 
             "bunny.png"
+        }
+
+        13 => {
+            world = Arc::new(three_spheres());
+            lights.add_object(Arc::new(StillSphere::new( Vec3::new(0.0, 6.0, 2.0), 2.0, NoMaterial)));
+            lookfrom = Vec3::new(1.0, 5.0, -8.0);
+            lookat = Vec3::new(0.0, 1.0, 0.0);
+            image_width = 1000;
+            image_height = 1000;
+            aspect_ratio = (image_width / image_height) as f32;
+            background = RGB::new(0.0, 0.0, 0.0);
+            samples_per_pixel = 5000;
+            aperture = 0.1;
+            vfov = 30.0;
+
+            "three_spheres.png"
+        }
+
+        14 => {
+            world = Arc::new(sycee());
+            lights.add_object(Arc::new(StillSphere::new( Vec3::new(0.0, 6.0, 2.0), 2.0, NoMaterial)));
+            lookfrom = Vec3::new(1.0, 5.0, -8.0);
+            lookat = Vec3::new(0.0, 1.0, 0.0);
+            image_width = 1000;
+            image_height = 1000;
+            aspect_ratio = (image_width / image_height) as f32;
+            background = RGB::new(0.0, 0.0, 0.0);
+            samples_per_pixel = 1000;
+            aperture = 0.1;
+            vfov = 30.0;
+
+            "sycee.png"
         }
 
         // 9 => {

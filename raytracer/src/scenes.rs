@@ -8,7 +8,7 @@ use crate::box_entity::BoxEntity;
 use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
-use crate::material::{DiffuseLight, Lambertian, Metal, SF66, LASF9};
+use crate::material::*;
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
@@ -430,19 +430,22 @@ pub fn the_next_week_final_scene() -> HittableList {
     objects
 }
 
-pub fn teapot() -> HittableList {
+pub fn sycee() -> HittableList {
     let mut objects = HittableList::new();
     let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
     let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-    // let glass = LASF9;
+    let glass = SF66;
     // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
-    let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    // let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
 
     objects.add_object(Arc::new(StillSphere::new(
-                Vec3::new(0.0, 8.0, -2.0), 2.0, light)));
+        Vec3::new(0.0, 6.0, 2.0),
+        2.0,
+        light,
+    )));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
-        Path::new("input/teapot.obj"),
-        red,
+        Path::new("input/sycee.obj"),
+        glass,
     )));
     objects.add_object(Arc::new(Triangle {
         vertices: [
@@ -455,11 +458,7 @@ pub fn teapot() -> HittableList {
             Vec3::new(0.0, 1.0, 0.0),
             Vec3::new(0.0, 1.0, 0.0),
         ],
-        uv: [
-            (0.0, 0.0),
-            (1.0, 0.0),
-            (1.0, 1.0),
-        ],
+        uv: [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)],
         material: ground.clone(),
     }));
     objects.add_object(Arc::new(Triangle {
@@ -473,11 +472,56 @@ pub fn teapot() -> HittableList {
             Vec3::new(0.0, 1.0, 0.0),
             Vec3::new(0.0, 1.0, 0.0),
         ],
-        uv: [
-            (0.0, 0.0),
-            (0.0, 1.0),
-            (1.0, 1.0),
+        uv: [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
+        material: ground,
+    }));
+
+    return objects;
+}
+
+pub fn teapot() -> HittableList {
+    let mut objects = HittableList::new();
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
+    let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+    let glass = SF66;
+    // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
+    // let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 5.0, -2.0),
+        5.0,
+        light,
+    )));
+    objects.add_object(Arc::new(TriangleMesh::from_obj(
+        Path::new("input/teapot.obj"),
+        glass,
+    )));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, 30.0),
         ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)],
+        material: ground.clone(),
+    }));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(-20.0, 0.0, 30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
         material: ground,
     }));
 
@@ -490,6 +534,81 @@ pub fn bunny() -> HittableList {
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/bunny.obj"),
         red,
+    )));
+
+    return objects;
+}
+
+pub fn three_spheres() -> HittableList {
+    let glass = SF66;
+    let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+    let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
+    let earth = Lambertian::new(ImageTexture::new("input/earthmap.jpg").unwrap());
+    let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
+
+    let mut objects = HittableList::new();
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, -30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)],
+        material: ground.clone(),
+    }));
+    objects.add_object(Arc::new(Triangle {
+        vertices: [
+            Vec3::new(-20.0, 0.0, -30.0),
+            Vec3::new(-20.0, 0.0, 30.0),
+            Vec3::new(20.0, 0.0, 30.0),
+        ],
+        normals: [
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        uv: [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
+        material: ground,
+    }));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 1.0, 0.0),
+        1.0,
+        glass,
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 1.3, 0.0),
+        -0.7,
+        glass.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 0.65, 0.0),
+        -0.35,
+        glass.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 0.325, 0.0),
+        -0.125,
+        glass.clone(),
+    )));
+    // objects.add_object(Arc::new(StillSphere::new(
+    //     Vec3::new(-3.0, 1.0, 0.0),
+    //     1.0,
+    //     earth,
+    // )));
+    // objects.add_object(Arc::new(StillSphere::new(
+    //     Vec3::new(3.0, 1.0, 0.0),
+    //     1.0,
+    //     metal,
+    // )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(0.0, 6.0, 2.0),
+        2.0,
+        light,
     )));
 
     return objects;
