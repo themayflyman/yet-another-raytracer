@@ -173,6 +173,8 @@ fn ray_reflectance(
 }
 
 fn main() {
+    let start_time = time::Instant::now();
+
     // Image
     let mut aspect_ratio: f32 = 3.0 / 2.0;
     let mut image_width: u32 = 1200;
@@ -425,8 +427,6 @@ fn main() {
     let pool = ThreadPool::new(n_workers);
 
     let l = Arc::new(lights);
-
-    let start_time = time::Instant::now();
 
     let (tx, rx) = channel();
     for col in 0..block_col {
