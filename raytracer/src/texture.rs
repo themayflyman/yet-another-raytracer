@@ -10,7 +10,7 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use rand::Rng;
 
-pub trait Texture: Clone + Send + Sync {
+pub trait Texture: Send + Sync {
     // fn value(&self, u: f32, v: f32, p: Vec3) -> RGB;
     fn value(&self, ray_in: &Ray, hit_record: &HitRecord) -> f32;
 }
@@ -67,7 +67,7 @@ impl<T: HasReflectance> Texture for CheckerTexture<T> {
     }
 }
 
-#[derive(Clone)]
+#[allow(dead_code)]
 pub enum NoiseType {
     // Unfiltered noise
     Square,
@@ -80,8 +80,7 @@ pub enum NoiseType {
     // Turbulent pattern that resembles a net
     Net,
 }
-//
-#[derive(Clone)]
+
 pub struct Perlin {
     ranfloat: Vec<f32>,
     ranvec: Vec<Vec3>,
@@ -244,7 +243,6 @@ impl Perlin {
     }
 }
 
-#[derive(Clone)]
 pub struct NoiseTexture {
     noise: Perlin,
     scale: f32,

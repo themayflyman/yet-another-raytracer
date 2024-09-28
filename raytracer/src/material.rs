@@ -9,7 +9,7 @@ use crate::ray::Ray;
 use crate::texture::Texture;
 use crate::vec3::Vec3;
 
-#[derive(Clone)]
+#[allow(dead_code)]
 pub struct Scatter {
     // pub color: RGB,
     pub attenuation: f32,

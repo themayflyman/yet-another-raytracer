@@ -543,8 +543,8 @@ pub fn three_spheres() -> HittableList {
     let glass = SF66;
     let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
     let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
-    let earth = Lambertian::new(ImageTexture::new("input/earthmap.jpg").unwrap());
-    let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
+    // let earth = Lambertian::new(ImageTexture::new("input/earthmap.jpg").unwrap());
+    // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
 
     let mut objects = HittableList::new();
     objects.add_object(Arc::new(Triangle {
