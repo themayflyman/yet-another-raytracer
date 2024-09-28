@@ -179,7 +179,7 @@ fn main() {
     let max_depth: usize = 50;
 
     // World
-    let mut world: Arc<HittableList> = Arc::new(HittableList::new());
+    let world: Arc<HittableList>;
     let mut lights: HittableList = HittableList::new();
     let lookfrom: Vec3;
     let lookat: Vec3;
