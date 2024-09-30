@@ -12,50 +12,51 @@ use crate::triangle::Triangle;
 use crate::vec3::Vec3;
 
 #[derive(Clone)]
-pub struct L1QBVH<M: Material> {
-    triangles: Vec<Arc<Triangle<M>>>,
+pub struct L1QBVH<T: Hittable + ?Sized> {
+    hittables: Vec<Arc<T>>,
     nodes: Vec<QBVHNode>,
 }
 
-impl<M: Material> L1QBVH<M> {
-    pub fn new(triangles: Vec<Arc<Triangle<M>>>) -> Self {
-        fn construct<M: Material>(
-            triangles: &mut [Arc<Triangle<M>>],
+#[allow(dead_code)]
+impl<T: Hittable + ?Sized> L1QBVH<T> {
+    pub fn new(hittables: Vec<Arc<T>>) -> Self {
+        fn construct<T: Hittable + ?Sized>(
+            hittables: &mut [Arc<T>],
             nodes: &mut Vec<QBVHNode>,
             indices: &mut [usize],
         ) -> (Option<AxisAlignedBoundingBox>, u32) {
-            if triangles.len() == 0 {
+            if hittables.len() == 0 {
                 (None, u32::MAX)
-            } else if triangles.len() == 1 {
+            } else if hittables.len() == 1 {
                 (
-                    triangles[0].bounding_box(0.0, 0.0),
+                    hittables[0].bounding_box(0.0, 0.0),
                     indices[0] as u32 | (1 << 31),
                 )
             } else {
-                let (left_triangles, left_indices, right_triangles, right_indices) =
-                    split(triangles, indices);
+                let (left_hittables, left_indices, right_hittables, right_indices) =
+                    split(hittables, indices);
 
                 let (
-                    left_left_triangles,
+                    left_left_hittables,
                     left_left_indices,
-                    left_right_triangles,
+                    left_right_hittables,
                     left_right_indices,
-                ) = split(left_triangles, left_indices);
+                ) = split(left_hittables, left_indices);
                 let (left_left_bbox, left_left_index) =
-                    construct(left_left_triangles, nodes, left_left_indices);
+                    construct(left_left_hittables, nodes, left_left_indices);
                 let (left_right_bbox, left_right_index) =
-                    construct(left_right_triangles, nodes, left_right_indices);
+                    construct(left_right_hittables, nodes, left_right_indices);
 
                 let (
-                    right_left_triangles,
+                    right_left_hittables,
                     right_left_indices,
-                    right_right_triangles,
+                    right_right_hittables,
                     right_right_indices,
-                ) = split(right_triangles, right_indices);
+                ) = split(right_hittables, right_indices);
                 let (right_left_bbox, right_left_index) =
-                    construct(right_left_triangles, nodes, right_left_indices);
+                    construct(right_left_hittables, nodes, right_left_indices);
                 let (right_right_bbox, right_right_index) =
-                    construct(right_right_triangles, nodes, right_right_indices);
+                    construct(right_right_hittables, nodes, right_right_indices);
 
                 nodes.push(QBVHNode::new(
                     left_left_bbox,
@@ -95,20 +96,17 @@ impl<M: Material> L1QBVH<M> {
             }
         }
 
-        let mut triangles: Vec<Arc<Triangle<M>>> = triangles.clone();
+        let mut hittables: Vec<Arc<T>> = hittables.clone();
         let mut nodes: Vec<QBVHNode> = vec![];
-        let mut indices: Vec<usize> = (0..triangles.len()).collect();
+        let mut indices: Vec<usize> = (0..hittables.len()).collect();
 
-        construct(&mut triangles, &mut nodes, &mut indices);
+        construct(&mut hittables, &mut nodes, &mut indices);
 
-        Self {
-            triangles,
-            nodes,
-        }
+        Self { hittables, nodes }
     }
 }
 
-impl<M: Material> Hittable for L1QBVH<M> {
+impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
         let nodes_len = self.nodes.len();
         Some(AxisAlignedBoundingBox::new(
@@ -154,7 +152,7 @@ impl<M: Material> Hittable for L1QBVH<M> {
             let id = stack[stack_cursor];
             if id >> 31 == 1 {
                 let index = (id & ((1 << 31) - 1)) as usize;
-                let hittiable = &self.triangles[index];
+                let hittiable = &self.hittables[index];
                 if let Some(hr) = hittiable.hit(ray, t_min, t_max) {
                     t_max = t_max.min(hr.t);
                     hit_record = Some(hr);
@@ -233,49 +231,7 @@ impl<M: Material> L4QBVH<M> {
                 });
 
                 let id = indices[0] as u32 | (1 << 31) | ((triangles.len() as u32) << 27);
-                let mut t_v0x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_v1x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_v2x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_normals0x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_normals1x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_normals2x4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_ux4 = [f32x4::splat(f32::MAX); 3];
-                let mut t_vx4 = [f32x4::splat(f32::MAX); 3];
-                for (i, triangle) in triangles.iter().enumerate() {
-                    for j in 0..3 {
-                        t_v0x4[j][i] = triangle.vertices[0][j];
-                        t_v1x4[j][i] = triangle.vertices[1][j];
-                        t_v2x4[j][i] = triangle.vertices[2][j];
-                        t_normals0x4[j][i] = triangle.normals[0][j];
-                        t_normals1x4[j][i] = triangle.normals[1][j];
-                        t_normals2x4[j][i] = triangle.normals[2][j];
-                        t_ux4[j][i] = triangle.uv[j].0;
-                        t_vx4[j][i] = triangle.uv[j].1;
-                    }
-                }
-                let edge1x4 = [
-                    t_v1x4[0] - t_v0x4[0],
-                    t_v1x4[1] - t_v0x4[1],
-                    t_v1x4[2] - t_v0x4[2],
-                ];
-                let edge2x4 = [
-                    t_v2x4[0] - t_v0x4[0],
-                    t_v2x4[1] - t_v0x4[1],
-                    t_v2x4[2] - t_v0x4[2],
-                ];
-                soa.insert(
-                    id,
-                    [
-                        t_v0x4,
-                        edge1x4,
-                        edge2x4,
-                        t_normals0x4,
-                        t_normals1x4,
-                        t_normals2x4,
-                        t_ux4,
-                        t_vx4,
-                    ],
-                );
+                soa.insert(id, precompute_soa_triangle(&triangles));
 
                 (
                     bounding_box,
@@ -580,16 +536,50 @@ impl QBVHNode {
 }
 
 #[inline(always)]
-fn split<'a, M: Material>(
-    triangles: &'a mut [Arc<Triangle<M>>],
+fn precompute_soa_triangle<M: Material>(triangles: &[Arc<Triangle<M>>]) -> [[f32x4; 3]; 8] {
+    let mut t_v0x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_edge1x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_edge2x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_normals0x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_normals1x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_normals2x4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_ux4 = [f32x4::splat(f32::MAX); 3];
+    let mut t_vx4 = [f32x4::splat(f32::MAX); 3];
+    for (i, triangle) in triangles.iter().enumerate() {
+        for j in 0..3 {
+            t_v0x4[j][i] = triangle.vertices[0][j];
+            t_edge1x4[j][i] = triangle.vertices[1][j] - triangle.vertices[0][j];
+            t_edge2x4[j][i] = triangle.vertices[2][j] - triangle.vertices[0][j];
+            t_normals0x4[j][i] = triangle.normals[0][j];
+            t_normals1x4[j][i] = triangle.normals[1][j];
+            t_normals2x4[j][i] = triangle.normals[2][j];
+            t_ux4[j][i] = triangle.uv[j].0;
+            t_vx4[j][i] = triangle.uv[j].1;
+        }
+    }
+    [
+        t_v0x4,
+        t_edge1x4,
+        t_edge2x4,
+        t_normals0x4,
+        t_normals1x4,
+        t_normals2x4,
+        t_ux4,
+        t_vx4,
+    ]
+}
+
+#[inline(always)]
+fn split<'a, T: Hittable + ?Sized>(
+    hittables: &'a mut [Arc<T>],
     indices: &'a mut [usize],
 ) -> (
-    &'a mut [Arc<Triangle<M>>],
+    &'a mut [Arc<T>],
     &'a mut [usize],
-    &'a mut [Arc<Triangle<M>>],
+    &'a mut [Arc<T>],
     &'a mut [usize],
 ) {
-    let (min_x, max_x, min_y, max_y, min_z, max_z) = triangles.iter().fold(
+    let (min_x, max_x, min_y, max_y, min_z, max_z) = hittables.iter().fold(
         (
             f32::INFINITY,
             f32::NEG_INFINITY,
@@ -598,8 +588,8 @@ fn split<'a, M: Material>(
             f32::INFINITY,
             f32::NEG_INFINITY,
         ),
-        |(min_x, max_x, min_y, max_y, min_z, max_z), triangle| {
-            let centroid = triangle.centroid(0.0, 0.0).unwrap();
+        |(min_x, max_x, min_y, max_y, min_z, max_z), hittable| {
+            let centroid = hittable.centroid(0.0, 0.0).unwrap();
             (
                 min_x.min(centroid.x()),
                 max_x.max(centroid.x()),
@@ -617,7 +607,7 @@ fn split<'a, M: Material>(
     if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
         axis = 2;
     }
-    triangles.sort_unstable_by(|a, b| {
+    hittables.sort_unstable_by(|a, b| {
         f32::partial_cmp(
             &(a.centroid(0.0, 0.0).unwrap()[axis]),
             &(b.centroid(0.0, 0.0).unwrap()[axis]),
@@ -625,10 +615,101 @@ fn split<'a, M: Material>(
         .unwrap()
     });
 
-    let (triangles_left, triangles_right) = triangles.split_at_mut(triangles.len() / 2);
+    let (hittables_left, hittables_right) = hittables.split_at_mut(hittables.len() / 2);
     let (indices_left, indices_right) = indices.split_at_mut(indices.len() / 2);
 
-    (triangles_left, indices_left, triangles_right, indices_right)
+    (hittables_left, indices_left, hittables_right, indices_right)
+}
+
+#[inline(always)]
+fn hit_trianglex4<'a, M: Material>(
+    index: usize,
+    count: usize,
+    hit_record: &'a mut Option<HitRecord<'a>>,
+    t_minx4: f32x4,
+    t_max: &'a mut f32,
+    rox4: &'a [f32x4; 3],
+    rdx4: &'a [f32x4; 3],
+    t_v0x4: &'a [f32x4; 3],
+    t_edge1x4: &'a [f32x4; 3],
+    t_edge2x4: &'a [f32x4; 3],
+    t_normals0x4: &'a [f32x4; 3],
+    t_normals1x4: &'a [f32x4; 3],
+    t_normals2x4: &'a [f32x4; 3],
+    t_ux4: &'a [f32x4; 3],
+    t_vx4: &'a [f32x4; 3],
+    triangles: &'a [Arc<Triangle<M>>],
+) {
+    let hx4 = [
+        rdx4[1] * t_edge2x4[2] - rdx4[2] * t_edge2x4[1],
+        rdx4[2] * t_edge2x4[0] - rdx4[0] * t_edge2x4[2],
+        rdx4[0] * t_edge2x4[1] - rdx4[1] * t_edge2x4[0],
+    ];
+    let ax4 = t_edge1x4[0] * hx4[0] + t_edge1x4[1] * hx4[1] + t_edge1x4[2] * hx4[2];
+
+    let mut hitx4 =
+        (ax4.simd_gt(-f32x4::splat(f32::EPSILON)) & ax4.simd_lt(f32x4::splat(f32::EPSILON))).not();
+
+    let fx4 = f32x4::splat(1.0) / ax4;
+    let sx4 = [
+        rox4[0] - t_v0x4[0],
+        rox4[1] - t_v0x4[1],
+        rox4[2] - t_v0x4[2],
+    ];
+    let ux4 = fx4 * (sx4[0] * hx4[0] + sx4[1] * hx4[1] + sx4[2] * hx4[2]);
+
+    hitx4 &= ux4.simd_ge(f32x4::splat(0.0)) & ux4.simd_le(f32x4::splat(1.0));
+
+    let qx4 = [
+        sx4[1] * t_edge1x4[2] - sx4[2] * t_edge1x4[1],
+        sx4[2] * t_edge1x4[0] - sx4[0] * t_edge1x4[2],
+        sx4[0] * t_edge1x4[1] - sx4[1] * t_edge1x4[0],
+    ];
+    let vx4 = fx4 * (rdx4[0] * qx4[0] + rdx4[1] * qx4[1] + rdx4[2] * qx4[2]);
+    hitx4 &= vx4.simd_ge(f32x4::splat(0.0)) & (ux4 + vx4).simd_le(f32x4::splat(1.0));
+
+    let tx4 = fx4 * (t_edge2x4[0] * qx4[0] + t_edge2x4[1] * qx4[1] + t_edge2x4[2] * qx4[2]);
+    hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f32x4::splat(*t_max));
+
+    let px4 = [
+        rox4[0] + tx4 * rdx4[0],
+        rox4[1] + tx4 * rdx4[1],
+        rox4[2] + tx4 * rdx4[2],
+    ];
+    let wx4 = f32x4::splat(1.0) - ux4 - vx4;
+    let outward_normalx4 = [
+        t_normals0x4[0] * vx4 + t_normals1x4[0] * ux4 + t_normals2x4[0] * wx4,
+        t_normals0x4[1] * vx4 + t_normals1x4[1] * ux4 + t_normals2x4[1] * wx4,
+        t_normals0x4[2] * vx4 + t_normals1x4[2] * ux4 + t_normals2x4[2] * wx4,
+    ];
+    let ffx4 = (rdx4[0] * outward_normalx4[0]
+        + rdx4[1] * outward_normalx4[1]
+        + rdx4[2] * outward_normalx4[2])
+        .simd_le(f32x4::splat(0.0));
+    let h_ux4 = t_ux4[0] * vx4 + t_ux4[1] * ux4 + t_ux4[2] * wx4;
+    let h_vx4 = t_vx4[0] * vx4 + t_vx4[1] * ux4 + t_vx4[2] * wx4;
+
+    for i in 0..count {
+        let ff = ffx4.test(i);
+        let sign: f32 = if ff { 1.0 } else { -1.0 };
+        let normal = Vec3::new(
+            sign * outward_normalx4[0][i],
+            sign * outward_normalx4[1][i],
+            sign * outward_normalx4[2][i],
+        );
+        if hitx4.test(i) && *t_max > tx4[i] {
+            *t_max = tx4[i];
+            *hit_record = Some(HitRecord {
+                u: h_ux4[i],
+                v: h_vx4[i],
+                t: tx4[i],
+                p: Vec3::new(px4[0][i], px4[1][i], px4[2][i]),
+                normal,
+                front_face: ff,
+                material: &triangles[index + i].material,
+            })
+        }
+    }
 }
 
 #[cfg(test)]
@@ -640,11 +721,15 @@ mod tests {
     use crate::ray::Ray;
     use crate::texture::SolidColor;
     use crate::vec3::Vec3;
+    use core::f32;
     use rand::prelude::*;
     use std::path::Path;
     use test::{black_box, Bencher};
 
-    fn load_hittables_from_obj(obj_path: &Path, material: impl Clone + Material + 'static) -> Vec<Arc<dyn Hittable>> {
+    fn load_hittables_from_obj(
+        obj_path: &Path,
+        material: impl Clone + Material + 'static,
+    ) -> Vec<Arc<dyn Hittable>> {
         let (models, _materials) =
             tobj::load_obj(obj_path, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load OBJ file");
 
@@ -706,7 +791,10 @@ mod tests {
         triangles
     }
 
-    fn load_triangles_from_obj<M: Clone + Material>(obj_path: &Path, material: M) -> Vec<Arc<Triangle<M>>> {
+    fn load_triangles_from_obj<M: Clone + Material>(
+        obj_path: &Path,
+        material: M,
+    ) -> Vec<Arc<Triangle<M>>> {
         let (models, _materials) =
             tobj::load_obj(obj_path, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load OBJ file");
 
@@ -792,10 +880,7 @@ mod tests {
             .collect()
     }
 
-    fn generate_uniform_random_rays(
-        count: usize,
-        bounds: &AxisAlignedBoundingBox
-    ) -> Vec<Ray> {
+    fn generate_uniform_random_rays(count: usize, bounds: &AxisAlignedBoundingBox) -> Vec<Ray> {
         let mut rng = rand::thread_rng();
         (0..count)
             .map(|_| {
@@ -811,9 +896,129 @@ mod tests {
     }
 
     #[bench]
+    fn bench_hit_l1_qbvh_cube_worse_case_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let cube = load_hittables_from_obj(Path::new("../input/cube.obj"), material);
+        let l1_qbvh = L1QBVH::new(cube);
+
+        let rays = generate_worse_case_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l4_qbvh_cube_worse_case_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let cube = load_triangles_from_obj(Path::new("../input/cube.obj"), material);
+        let l4_qbvh = L4QBVH::new(cube);
+
+        let rays = generate_worse_case_rays(512, &l4_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l1_qbvh_cube_uniform_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let cube = load_hittables_from_obj(Path::new("../input/cube.obj"), material);
+        let l1_qbvh = L1QBVH::new(cube);
+
+        let rays = generate_uniform_random_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l4_qbvh_cube_uniform_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let cube = load_triangles_from_obj(Path::new("../input/cube.obj"), material);
+        let l4_qbvh = L4QBVH::new(cube);
+
+        let rays = generate_uniform_random_rays(512, &l4_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l1_qbvh_david_worse_case_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let david = load_hittables_from_obj(Path::new("../input/david.obj"), material);
+        let l1_qbvh = L1QBVH::new(david);
+
+        let rays = generate_worse_case_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l4_qbvh_david_worse_case_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let david = load_triangles_from_obj(Path::new("../input/david.obj"), material);
+        let l4_qbvh = L4QBVH::new(david);
+
+        let rays = generate_worse_case_rays(512, &l4_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l1_qbvh_david_uniform_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let david = load_hittables_from_obj(Path::new("../input/david.obj"), material);
+        let l1_qbvh = L1QBVH::new(david);
+
+        let rays = generate_uniform_random_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_l4_qbvh_david_uniform_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let david = load_triangles_from_obj(Path::new("../input/david.obj"), material);
+        let l4_qbvh = L4QBVH::new(david);
+
+        let rays = generate_uniform_random_rays(512, &l4_qbvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
+
+    #[bench]
     fn bench_hit_l1_qbvh_stanford_bunny_worse_case_rays(bencher: &mut Bencher) {
         let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-        let stanford_bunny = load_triangles_from_obj(Path::new("../input/bunny.obj"), material);
+        let stanford_bunny = load_hittables_from_obj(Path::new("../input/bunny.obj"), material);
         let l1_qbvh = L1QBVH::new(stanford_bunny);
 
         let rays = generate_worse_case_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
@@ -843,7 +1048,7 @@ mod tests {
     #[bench]
     fn bench_hit_l1_qbvh_stanford_bunny_uniform_rays(bencher: &mut Bencher) {
         let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-        let stanford_bunny = load_triangles_from_obj(Path::new("../input/bunny.obj"), material);
+        let stanford_bunny = load_hittables_from_obj(Path::new("../input/bunny.obj"), material);
         let l1_qbvh = L1QBVH::new(stanford_bunny);
 
         let rays = generate_uniform_random_rays(512, &l1_qbvh.bounding_box(0.0, 0.0).unwrap());
@@ -870,21 +1075,366 @@ mod tests {
         });
     }
 
-    // #[bench]
-    // fn bench_hit_bvh_stanford_bunny_worse_case_rays(bencher: &mut Bencher) {
-    //     let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-    //     let mut stanford_bunny = load_hittables_from_obj(Path::new("../input/bunny.obj"), material);
-    //     let size = stanford_bunny.len();
-    //     let bvh = BVHNode::new(&mut stanford_bunny, 0, size, 0.0, 0.0);
+    fn get_triangles_and_ray_for_hit_test(
+        count: usize,
+        is_worse_case: bool,
+    ) -> (Vec<Arc<Triangle<Lambertian<SolidColor<RGB>>>>>, Ray) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let mut triangles = vec![
+            Arc::new(Triangle {
+                vertices: [
+                    Vec3::new(-1.076726, -0.017016, 0.613202),
+                    Vec3::new(-1.117708, -0.041064, 0.593336),
+                    Vec3::new(-1.124824, -0.040218, 0.613324),
+                ],
+                normals: [
+                    Vec3::new(-0.578671, 0.815558, 0.00217971),
+                    Vec3::new(-0.439594, 0.864849, -0.242472),
+                    Vec3::new(-0.398821, 0.894699, -0.201137),
+                ],
+                uv: [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+                material: material.clone(),
+            }),
+            Arc::new(Triangle {
+                vertices: [
+                    Vec3::new(-1.076726, -0.017016, 0.613202),
+                    Vec3::new(-1.124824, -0.040218, 0.613324),
+                    Vec3::new(-1.07417, -0.017264, 0.633146),
+                ],
+                normals: [
+                    Vec3::new(-0.578671, 0.815558, 0.00217971),
+                    Vec3::new(-0.398821, 0.894699, -0.201137),
+                    Vec3::new(-0.540938, 0.840891, 0.0169749),
+                ],
+                uv: [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+                material: material.clone(),
+            }),
+            Arc::new(Triangle {
+                vertices: [
+                    Vec3::new(-1.074288, -0.017314, 0.593228),
+                    Vec3::new(-1.117708, -0.041064, 0.593336),
+                    Vec3::new(-1.076726, -0.017016, 0.613202),
+                ],
+                normals: [
+                    Vec3::new(-0.628594, 0.765563, -0.137049),
+                    Vec3::new(-0.439594, 0.864849, -0.242472),
+                    Vec3::new(-0.578671, 0.815558, 0.00217971),
+                ],
+                uv: [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+                material: material.clone(),
+            }),
+            Arc::new(Triangle {
+                vertices: [
+                    Vec3::new(-1.105662, -0.042332, 0.573312),
+                    Vec3::new(-1.117708, -0.041064, 0.593336),
+                    Vec3::new(-1.074288, -0.017314, 0.593228),
+                ],
+                normals: [
+                    Vec3::new(-0.471386, 0.817334, -0.331301),
+                    Vec3::new(-0.439594, 0.864849, -0.242472),
+                    Vec3::new(-0.628594, 0.765563, -0.137049),
+                ],
+                uv: [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)],
+                material: material.clone(),
+            }),
+        ];
 
-    //     let rays = generate_worse_case_rays(512, &bvh.bounding_box(0.0, 0.0).unwrap());
-    //     let mut rays_in = rays.iter().cycle();
+        triangles.truncate(count);
+        if is_worse_case {
+            triangles.reverse();
+        }
 
-    //     bencher.iter(|| {
-    //         let ray = rays_in.next().unwrap();
-    //         black_box(bvh.hit(&ray, 0.0, f32::INFINITY));
-    //     });
-    // }
+        (
+            triangles,
+            Ray::new(
+                Vec3::new(-0.003898251, 2.0127985, 9.99872),
+                Vec3::new(-1.1280149, -2.129233, -9.836952),
+                0.0,
+                0.0,
+            ),
+        )
+    }
+
+    #[bench]
+    fn bench_4_triangles_best_case_hit_indiviually(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, false);
+
+        let mut t_max = f32::INFINITY;
+        bencher.iter(|| {
+            for triangle in triangles.iter() {
+                if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
+                    t_max = hit_record.t;
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_4_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, true);
+
+        let mut t_max = f32::INFINITY;
+        bencher.iter(|| {
+            for triangle in triangles.iter() {
+                if let Some(hit_record) = black_box(triangle.hit(&ray, 0.00, t_max)) {
+                    t_max = hit_record.t;
+                }
+            }
+        });
+    }
+
+    fn change_ray_layout(ray: &Ray) -> ([f32x4; 3], [f32x4; 3]) {
+        let rox4 = [
+            f32x4::splat(ray.origin().x()),
+            f32x4::splat(ray.origin().y()),
+            f32x4::splat(ray.origin().z()),
+        ];
+        let rdx4 = [
+            f32x4::splat(ray.direction().x()),
+            f32x4::splat(ray.direction().y()),
+            f32x4::splat(ray.direction().z()),
+        ];
+        (rox4, rdx4)
+    }
+
+    #[bench]
+    fn bench_4_triangles_best_case_hit_together(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, false);
+
+        let (rox4, rdx4) = change_ray_layout(&ray);
+        let t_minx4 = f32x4::splat(0.0);
+        let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
+            precompute_soa_triangle(&triangles);
+
+        let index = 0;
+        let count = triangles.len();
+
+        bencher.iter(|| {
+            let mut t_max = f32::INFINITY;
+            let mut hit_record = None;
+            black_box(hit_trianglex4(
+                index,
+                count,
+                &mut hit_record,
+                t_minx4,
+                &mut t_max,
+                &rox4,
+                &rdx4,
+                &t_v0x4,
+                &t_edge1x4,
+                &t_edge2x4,
+                &t_normals0x4,
+                &t_normals1x4,
+                &t_normals2x4,
+                &t_ux4,
+                &t_vx4,
+                &triangles,
+            ));
+        });
+    }
+
+    #[bench]
+    fn bench_4_triangles_worst_case_hit_together(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, false);
+
+        let (rox4, rdx4) = change_ray_layout(&ray);
+
+        let t_minx4 = f32x4::splat(0.0);
+        let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
+            precompute_soa_triangle(&triangles);
+
+        let index = 0;
+        let count = triangles.len();
+
+        bencher.iter(|| {
+            let mut t_max = f32::INFINITY;
+            let mut hit_record = None;
+            black_box(hit_trianglex4(
+                index,
+                count,
+                &mut hit_record,
+                t_minx4,
+                &mut t_max,
+                &rox4,
+                &rdx4,
+                &t_v0x4,
+                &t_edge1x4,
+                &t_edge2x4,
+                &t_normals0x4,
+                &t_normals1x4,
+                &t_normals2x4,
+                &t_ux4,
+                &t_vx4,
+                &triangles,
+            ));
+        });
+    }
+
+    #[bench]
+    fn bench_1_triangle_worst_case_hit_indiviually(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(1, true);
+
+        let mut t_max = f32::INFINITY;
+        bencher.iter(|| {
+            for triangle in triangles.iter() {
+                if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
+                    t_max = hit_record.t;
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_1_triangle_worse_case_hit_together(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(1, true);
+
+        let (rox4, rdx4) = change_ray_layout(&ray);
+        let t_minx4 = f32x4::splat(0.0);
+        let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
+            precompute_soa_triangle(&triangles);
+
+        let index = 0;
+        let count = triangles.len();
+
+        bencher.iter(|| {
+            let mut t_max = f32::INFINITY;
+            let mut hit_record = None;
+            black_box(hit_trianglex4(
+                index,
+                count,
+                &mut hit_record,
+                t_minx4,
+                &mut t_max,
+                &rox4,
+                &rdx4,
+                &t_v0x4,
+                &t_edge1x4,
+                &t_edge2x4,
+                &t_normals0x4,
+                &t_normals1x4,
+                &t_normals2x4,
+                &t_ux4,
+                &t_vx4,
+                &triangles,
+            ));
+        });
+    }
+
+    #[bench]
+    fn bench_2_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(2, true);
+
+        let mut t_max = f32::INFINITY;
+        bencher.iter(|| {
+            for triangle in triangles.iter() {
+                if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
+                    t_max = hit_record.t;
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_2_triangles_worst_case_hit_together(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(2, true);
+
+        let (rox4, rdx4) = change_ray_layout(&ray);
+        let t_minx4 = f32x4::splat(0.0);
+        let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
+            precompute_soa_triangle(&triangles);
+
+        let index = 0;
+        let count = triangles.len();
+
+        bencher.iter(|| {
+            let mut t_max = f32::INFINITY;
+            let mut hit_record = None;
+            black_box(hit_trianglex4(
+                index,
+                count,
+                &mut hit_record,
+                t_minx4,
+                &mut t_max,
+                &rox4,
+                &rdx4,
+                &t_v0x4,
+                &t_edge1x4,
+                &t_edge2x4,
+                &t_normals0x4,
+                &t_normals1x4,
+                &t_normals2x4,
+                &t_ux4,
+                &t_vx4,
+                &triangles,
+            ));
+        });
+    }
+
+    #[bench]
+    fn bench_3_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(3, true);
+
+        let mut t_max = f32::INFINITY;
+        bencher.iter(|| {
+            for triangle in triangles.iter() {
+                if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
+                    t_max = hit_record.t;
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_3_triangles_worst_case_hit_together(bencher: &mut Bencher) {
+        let (triangles, ray) = get_triangles_and_ray_for_hit_test(3, true);
+
+        let (rox4, rdx4) = change_ray_layout(&ray);
+        let t_minx4 = f32x4::splat(0.0);
+        let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
+            precompute_soa_triangle(&triangles);
+
+        let index = 0;
+        let count = triangles.len();
+
+        bencher.iter(|| {
+            let mut t_max = f32::INFINITY;
+            let mut hit_record = None;
+            black_box(hit_trianglex4(
+                index,
+                count,
+                &mut hit_record,
+                t_minx4,
+                &mut t_max,
+                &rox4,
+                &rdx4,
+                &t_v0x4,
+                &t_edge1x4,
+                &t_edge2x4,
+                &t_normals0x4,
+                &t_normals1x4,
+                &t_normals2x4,
+                &t_ux4,
+                &t_vx4,
+                &triangles,
+            ));
+        });
+    }
+
+    #[bench]
+    fn bench_hit_bvh_stanford_bunny_worse_case_rays(bencher: &mut Bencher) {
+        let material = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
+        let mut stanford_bunny = load_hittables_from_obj(Path::new("../input/bunny.obj"), material);
+        let size = stanford_bunny.len();
+        let bvh = BVHNode::new(&mut stanford_bunny, 0, size, 0.0, 0.0);
+
+        let rays = generate_worse_case_rays(512, &bvh.bounding_box(0.0, 0.0).unwrap());
+        let mut rays_in = rays.iter().cycle();
+
+        bencher.iter(|| {
+            let ray = rays_in.next().unwrap();
+            black_box(bvh.hit(&ray, 0.0, f32::INFINITY));
+        });
+    }
 
     #[bench]
     fn bench_hit_bvh_stanford_bunny_uniform_rays(bencher: &mut Bencher) {
