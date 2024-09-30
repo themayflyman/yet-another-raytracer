@@ -9,6 +9,7 @@ use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
 use crate::material::*;
+use crate::qbvh::L1QBVH;
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};
@@ -483,9 +484,9 @@ pub fn teapot() -> HittableList {
     let mut objects = HittableList::new();
     let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
     let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-    let glass = SF66;
+    // let glass = SF66;
     // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
-    // let red = Lambertian::new(SolidColor::new(RGB::new(0.65, 0.05, 0.05)));
+    let gold = Metal::new(SolidColor::new(RGB::new(0.898, 0.722, 0.043)), 1.0);
 
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(0.0, 10.0, -2.0),
@@ -494,7 +495,7 @@ pub fn teapot() -> HittableList {
     )));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/teapot.obj"),
-        glass,
+        gold,
     )));
     objects.add_object(Arc::new(Triangle {
         vertices: [
