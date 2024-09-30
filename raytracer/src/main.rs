@@ -192,7 +192,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 11;
+    let scene = 12;
 
     let filename = match scene {
         1 => {
@@ -328,9 +328,9 @@ fn main() {
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 5000;
-            aperture = 0.01;
-            vfov = 30.0;
+            samples_per_pixel = 1;
+            aperture = 0.02;
+            vfov = 35.0;
 
             "teapot.png"
         }
