@@ -11,6 +11,10 @@ use crate::material::Material;
 use crate::triangle::Triangle;
 use crate::vec3::Vec3;
 
+const ORDER_TABLE: [u32; 8] = [
+    0x0123, 0x0132, 0x1023, 0x1032, 0x2301, 0x3201, 0x2310, 0x3210,
+];
+
 #[derive(Clone)]
 pub struct L1QBVH<T: Hittable + ?Sized> {
     hittables: Vec<Arc<T>>,
@@ -33,7 +37,7 @@ impl<T: Hittable + ?Sized> L1QBVH<T> {
                     indices[0] as u32 | (1 << 31),
                 )
             } else {
-                let (left_hittables, left_indices, right_hittables, right_indices) =
+                let (left_hittables, left_indices, right_hittables, right_indices, top_axis) =
                     split(hittables, indices);
 
                 let (
@@ -41,6 +45,7 @@ impl<T: Hittable + ?Sized> L1QBVH<T> {
                     left_left_indices,
                     left_right_hittables,
                     left_right_indices,
+                    left_axis,
                 ) = split(left_hittables, left_indices);
                 let (left_left_bbox, left_left_index) =
                     construct(left_left_hittables, nodes, left_left_indices);
@@ -52,6 +57,7 @@ impl<T: Hittable + ?Sized> L1QBVH<T> {
                     right_left_indices,
                     right_right_hittables,
                     right_right_indices,
+                    right_axis,
                 ) = split(right_hittables, right_indices);
                 let (right_left_bbox, right_left_index) =
                     construct(right_left_hittables, nodes, right_left_indices);
@@ -67,6 +73,9 @@ impl<T: Hittable + ?Sized> L1QBVH<T> {
                     right_left_index,
                     right_right_bbox,
                     right_right_index,
+                    top_axis,
+                    left_axis,
+                    right_axis,
                 ));
 
                 let left_bbox = match (left_left_bbox, left_right_bbox) {
@@ -130,6 +139,11 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
         let mut stack_cursor: usize = 0;
         let mut hit_record: Option<HitRecord> = None;
 
+        let rd_is_positive = [
+            ray.direction().x() >= 0.0,
+            ray.direction().y() >= 0.0,
+            ray.direction().z() >= 0.0,
+        ];
         let rox4: [f32x4; 3] = [
             f32x4::splat(ray.origin().x()),
             f32x4::splat(ray.origin().y()),
@@ -187,10 +201,21 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
                 .iter()
                 .fold(t_maxx4, |t_maxx4, &t_curr| t_maxx4.simd_min(t_curr));
 
+                let encoded_order = ORDER_TABLE[4 * rd_is_positive[node.top_axis as usize]
+                    as usize
+                    + 2 * rd_is_positive[node.left_axis as usize] as usize
+                    + 1 * rd_is_positive[node.right_axis as usize] as usize];
+
+                let order = [
+                    (encoded_order >> 0) & 0xF,
+                    (encoded_order >> 4) & 0xF,
+                    (encoded_order >> 8) & 0xF,
+                    (encoded_order >> 12) & 0xF,
+                ];
                 let hits = t_maxx4.simd_gt(t_minx4).to_int();
-                for i in 0..4 {
-                    stack[stack_cursor] = node.children[i];
-                    stack_cursor -= hits[i] as usize;
+                for &i in &order {
+                    stack[stack_cursor] = node.children[i as usize];
+                    stack_cursor -= hits[i as usize] as usize;
                 }
             }
 
@@ -241,7 +266,7 @@ impl<M: Material> L4QBVH<M> {
                     id,
                 )
             } else {
-                let (left_triangles, left_indices, right_triangles, right_indices) =
+                let (left_triangles, left_indices, right_triangles, right_indices, top_axis) =
                     split(triangles, indices);
 
                 let (
@@ -249,6 +274,7 @@ impl<M: Material> L4QBVH<M> {
                     left_left_indices,
                     left_right_triangles,
                     left_right_indices,
+                    left_axis,
                 ) = split(left_triangles, left_indices);
                 let (left_left_bbox, left_left_index) =
                     construct(left_left_triangles, nodes, left_left_indices, soa);
@@ -260,6 +286,7 @@ impl<M: Material> L4QBVH<M> {
                     right_left_indices,
                     right_right_triangles,
                     right_right_indices,
+                    right_axis,
                 ) = split(right_triangles, right_indices);
                 let (right_left_bbox, right_left_index) =
                     construct(right_left_triangles, nodes, right_left_indices, soa);
@@ -275,6 +302,9 @@ impl<M: Material> L4QBVH<M> {
                     right_left_index,
                     right_right_bbox,
                     right_right_index,
+                    top_axis,
+                    left_axis,
+                    right_axis,
                 ));
 
                 let left_bbox = match (left_left_bbox, left_right_bbox) {
@@ -343,6 +373,11 @@ impl<M: Material> Hittable for L4QBVH<M> {
         let mut stack_cursor: usize = 0;
         let mut hit_record: Option<HitRecord> = None;
 
+        let rd_is_positive = [
+            ray.direction().x() >= 0.0,
+            ray.direction().y() >= 0.0,
+            ray.direction().z() >= 0.0,
+        ];
         let rox4: [f32x4; 3] = [
             f32x4::splat(ray.origin().x()),
             f32x4::splat(ray.origin().y()),
@@ -471,10 +506,21 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 .iter()
                 .fold(t_maxx4, |t_maxx4, &t_curr| t_maxx4.simd_min(t_curr));
 
+                let encoded_order = ORDER_TABLE[4 * rd_is_positive[node.top_axis as usize]
+                    as usize
+                    + 2 * rd_is_positive[node.left_axis as usize] as usize
+                    + 1 * rd_is_positive[node.right_axis as usize] as usize];
+
+                let order = [
+                    (encoded_order >> 0) & 0xF,
+                    (encoded_order >> 4) & 0xF,
+                    (encoded_order >> 8) & 0xF,
+                    (encoded_order >> 12) & 0xF,
+                ];
                 let hits = t_maxx4.simd_gt(t_minx4).to_int();
-                for i in 0..4 {
-                    stack[stack_cursor] = node.children[i];
-                    stack_cursor -= hits[i] as usize;
+                for &i in &order {
+                    stack[stack_cursor] = node.children[i as usize];
+                    stack_cursor -= hits[i as usize] as usize;
                 }
             }
 
@@ -493,6 +539,9 @@ struct QBVHNode {
     bounding_box_min: [f32x4; 3],
     bounding_box_max: [f32x4; 3],
     children: u32x4, // sign is used to encode whether or not the child is a leaf node, the remaining 31 bits is used to encode the index to refer in triangles
+    top_axis: usize,
+    left_axis: usize,
+    right_axis: usize,
 }
 
 impl QBVHNode {
@@ -505,6 +554,9 @@ impl QBVHNode {
         rl_index: u32,
         rr_bbox: Option<AxisAlignedBoundingBox>,
         rr_index: u32,
+        top_axis: usize,
+        left_axis: usize,
+        right_axis: usize,
     ) -> Self {
         let mut bounding_box_min = [f32x4::splat(f32::MAX); 3];
         let mut bounding_box_max = [f32x4::splat(f32::MAX); 3];
@@ -531,6 +583,9 @@ impl QBVHNode {
             bounding_box_min,
             bounding_box_max,
             children,
+            top_axis,
+            left_axis,
+            right_axis,
         }
     }
 }
@@ -578,6 +633,7 @@ fn split<'a, T: Hittable + ?Sized>(
     &'a mut [usize],
     &'a mut [Arc<T>],
     &'a mut [usize],
+    usize,
 ) {
     let (min_x, max_x, min_y, max_y, min_z, max_z) = hittables.iter().fold(
         (
@@ -618,7 +674,13 @@ fn split<'a, T: Hittable + ?Sized>(
     let (hittables_left, hittables_right) = hittables.split_at_mut(hittables.len() / 2);
     let (indices_left, indices_right) = indices.split_at_mut(indices.len() / 2);
 
-    (hittables_left, indices_left, hittables_right, indices_right)
+    (
+        hittables_left,
+        indices_left,
+        hittables_right,
+        indices_right,
+        axis,
+    )
 }
 
 #[inline(always)]
