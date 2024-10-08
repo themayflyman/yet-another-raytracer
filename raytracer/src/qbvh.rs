@@ -208,7 +208,7 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
 pub struct L4QBVH<M: Material> {
     triangles: Vec<Arc<Triangle<M>>>,
     nodes: Vec<QBVHNode>,
-    soa: HashMap<u32, [[[f32x4; 4]; 3]; 8]>,
+    soa: HashMap<u32, [[f32x4; 3]; 8]>,
 }
 
 impl<M: Material> L4QBVH<M> {
@@ -217,11 +217,11 @@ impl<M: Material> L4QBVH<M> {
             triangles: &mut [Arc<Triangle<M>>],
             nodes: &mut Vec<QBVHNode>,
             indices: &mut [usize],
-            soa: &mut HashMap<u32, [[[f32x4; 4]; 3]; 8]>,
+            soa: &mut HashMap<u32, [[f32x4; 3]; 8]>,
         ) -> (Option<AxisAlignedBoundingBox>, u32) {
             if triangles.len() == 0 {
                 (None, u32::MAX)
-            } else if triangles.len() <= 16 {
+            } else if triangles.len() <= 4 {
                 let bounding_box = triangles.iter().fold(None, |bbox, triangle| match bbox {
                     Some(bbox) => Some(AxisAlignedBoundingBox::surrounding_box(
                         &bbox,
@@ -231,7 +231,7 @@ impl<M: Material> L4QBVH<M> {
                 });
 
                 let id = indices[0] as u32 | (1 << 31) | ((triangles.len() as u32) << 27);
-                soa.insert(id, precompute_soa_triangle2(&triangles));
+                soa.insert(id, precompute_soa_triangle(&triangles));
 
                 (
                     bounding_box,
@@ -307,7 +307,7 @@ impl<M: Material> L4QBVH<M> {
         let mut triangles: Vec<Arc<Triangle<M>>> = triangles.clone();
         let mut nodes: Vec<QBVHNode> = vec![];
         let mut indices: Vec<usize> = (0..triangles.len()).collect();
-        let mut soa: HashMap<u32, [[[f32x4; 4]; 3]; 8]> = HashMap::new();
+        let mut soa: HashMap<u32, [[f32x4; 3]; 8]> = HashMap::new();
 
         construct(&mut triangles, &mut nodes, &mut indices, &mut soa);
 
@@ -370,89 +370,75 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 let [t_v0x4, edge1x4, edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
                     self.soa.get(&(id as u32)).unwrap();
 
-                for i in 0..4 {
-                    let hx4 = [
-                        rdx4[1] * edge2x4[2][i] - rdx4[2] * edge2x4[1][i],
-                        rdx4[2] * edge2x4[0][i] - rdx4[0] * edge2x4[2][i],
-                        rdx4[0] * edge2x4[1][i] - rdx4[1] * edge2x4[0][i],
-                    ];
-                    let ax4 =
-                        edge1x4[0][i] * hx4[0] + edge1x4[1][i] * hx4[1] + edge1x4[2][i] * hx4[2];
+                let hx4 = [
+                    rdx4[1] * edge2x4[2] - rdx4[2] * edge2x4[1],
+                    rdx4[2] * edge2x4[0] - rdx4[0] * edge2x4[2],
+                    rdx4[0] * edge2x4[1] - rdx4[1] * edge2x4[0],
+                ];
+                let ax4 = edge1x4[0] * hx4[0] + edge1x4[1] * hx4[1] + edge1x4[2] * hx4[2];
 
-                    let mut hitx4 = (ax4.simd_gt(-f32x4::splat(f32::EPSILON))
-                        & ax4.simd_lt(f32x4::splat(f32::EPSILON)))
-                    .not();
+                let mut hitx4 = (ax4.simd_gt(-f32x4::splat(f32::EPSILON))
+                    & ax4.simd_lt(f32x4::splat(f32::EPSILON)))
+                .not();
 
-                    let fx4 = f32x4::splat(1.0) / ax4;
-                    let sx4 = [
-                        rox4[0] - t_v0x4[0][i],
-                        rox4[1] - t_v0x4[1][i],
-                        rox4[2] - t_v0x4[2][i],
-                    ];
-                    let ux4 = fx4 * (sx4[0] * hx4[0] + sx4[1] * hx4[1] + sx4[2] * hx4[2]);
+                let fx4 = f32x4::splat(1.0) / ax4;
+                let sx4 = [
+                    rox4[0] - t_v0x4[0],
+                    rox4[1] - t_v0x4[1],
+                    rox4[2] - t_v0x4[2],
+                ];
+                let ux4 = fx4 * (sx4[0] * hx4[0] + sx4[1] * hx4[1] + sx4[2] * hx4[2]);
 
-                    hitx4 &= ux4.simd_ge(f32x4::splat(0.0)) & ux4.simd_le(f32x4::splat(1.0));
+                hitx4 &= ux4.simd_ge(f32x4::splat(0.0)) & ux4.simd_le(f32x4::splat(1.0));
 
-                    let qx4 = [
-                        sx4[1] * edge1x4[2][i] - sx4[2] * edge1x4[1][i],
-                        sx4[2] * edge1x4[0][i] - sx4[0] * edge1x4[2][i],
-                        sx4[0] * edge1x4[1][i] - sx4[1] * edge1x4[0][i],
-                    ];
-                    let vx4 = fx4 * (rdx4[0] * qx4[0] + rdx4[1] * qx4[1] + rdx4[2] * qx4[2]);
-                    hitx4 &=
-                        vx4.simd_ge(f32x4::splat(0.0)) & (ux4 + vx4).simd_le(f32x4::splat(1.0));
+                let qx4 = [
+                    sx4[1] * edge1x4[2] - sx4[2] * edge1x4[1],
+                    sx4[2] * edge1x4[0] - sx4[0] * edge1x4[2],
+                    sx4[0] * edge1x4[1] - sx4[1] * edge1x4[0],
+                ];
+                let vx4 = fx4 * (rdx4[0] * qx4[0] + rdx4[1] * qx4[1] + rdx4[2] * qx4[2]);
+                hitx4 &= vx4.simd_ge(f32x4::splat(0.0)) & (ux4 + vx4).simd_le(f32x4::splat(1.0));
 
-                    let tx4 = fx4
-                        * (edge2x4[0][i] * qx4[0]
-                            + edge2x4[1][i] * qx4[1]
-                            + edge2x4[2][i] * qx4[2]);
-                    hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f32x4::splat(t_max));
+                let tx4 = fx4 * (edge2x4[0] * qx4[0] + edge2x4[1] * qx4[1] + edge2x4[2] * qx4[2]);
+                hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f32x4::splat(t_max));
 
-                    let px4 = [
-                        rox4[0] + tx4 * rdx4[0],
-                        rox4[1] + tx4 * rdx4[1],
-                        rox4[2] + tx4 * rdx4[2],
-                    ];
-                    let wx4 = f32x4::splat(1.0) - ux4 - vx4;
-                    let outward_normalx4 = [
-                        t_normals0x4[0][i] * vx4
-                            + t_normals1x4[0][i] * ux4
-                            + t_normals2x4[0][i] * wx4,
-                        t_normals0x4[1][i] * vx4
-                            + t_normals1x4[1][i] * ux4
-                            + t_normals2x4[1][i] * wx4,
-                        t_normals0x4[2][i] * vx4
-                            + t_normals1x4[2][i] * ux4
-                            + t_normals2x4[2][i] * wx4,
-                    ];
-                    let ffx4 = (rdx4[0] * outward_normalx4[0]
-                        + rdx4[1] * outward_normalx4[1]
-                        + rdx4[2] * outward_normalx4[2])
-                        .simd_le(f32x4::splat(0.0));
-                    let h_ux4 = t_ux4[0][i] * vx4 + t_ux4[1][i] * ux4 + t_ux4[2][i] * wx4;
-                    let h_vx4 = t_vx4[0][i] * vx4 + t_vx4[1][i] * ux4 + t_vx4[2][i] * wx4;
+                let px4 = [
+                    rox4[0] + tx4 * rdx4[0],
+                    rox4[1] + tx4 * rdx4[1],
+                    rox4[2] + tx4 * rdx4[2],
+                ];
+                let wx4 = f32x4::splat(1.0) - ux4 - vx4;
+                let outward_normalx4 = [
+                    t_normals0x4[0] * vx4 + t_normals1x4[0] * ux4 + t_normals2x4[0] * wx4,
+                    t_normals0x4[1] * vx4 + t_normals1x4[1] * ux4 + t_normals2x4[1] * wx4,
+                    t_normals0x4[2] * vx4 + t_normals1x4[2] * ux4 + t_normals2x4[2] * wx4,
+                ];
+                let ffx4 = (rdx4[0] * outward_normalx4[0]
+                    + rdx4[1] * outward_normalx4[1]
+                    + rdx4[2] * outward_normalx4[2])
+                    .simd_le(f32x4::splat(0.0));
+                let h_ux4 = t_ux4[0] * vx4 + t_ux4[1] * ux4 + t_ux4[2] * wx4;
+                let h_vx4 = t_vx4[0] * vx4 + t_vx4[1] * ux4 + t_vx4[2] * wx4;
 
-                    for j in i..count.min(i + 4) {
-                        let i = j / 4;
-                        let ff = ffx4.test(i);
-                        let sign: f32 = if ff { 1.0 } else { -1.0 };
-                        let normal = Vec3::new(
-                            sign * outward_normalx4[0][i],
-                            sign * outward_normalx4[1][i],
-                            sign * outward_normalx4[2][i],
-                        );
-                        if hitx4.test(i) && t_max > tx4[i] {
-                            t_max = tx4[i];
-                            hit_record = Some(HitRecord {
-                                u: h_ux4[i],
-                                v: h_vx4[i],
-                                t: tx4[i],
-                                p: Vec3::new(px4[0][i], px4[1][i], px4[2][i]),
-                                normal,
-                                front_face: ff,
-                                material: &self.triangles[index + i].material,
-                            })
-                        }
+                for i in 0..count {
+                    let ff = ffx4.test(i);
+                    let sign: f32 = if ff { 1.0 } else { -1.0 };
+                    let normal = Vec3::new(
+                        sign * outward_normalx4[0][i],
+                        sign * outward_normalx4[1][i],
+                        sign * outward_normalx4[2][i],
+                    );
+                    if hitx4.test(i) && t_max > tx4[i] {
+                        t_max = tx4[i];
+                        hit_record = Some(HitRecord {
+                            u: h_ux4[i],
+                            v: h_vx4[i],
+                            t: tx4[i],
+                            p: Vec3::new(px4[0][i], px4[1][i], px4[2][i]),
+                            normal,
+                            front_face: ff,
+                            material: &self.triangles[index + i].material,
+                        })
                     }
                 }
             } else {
@@ -547,42 +533,6 @@ impl QBVHNode {
             children,
         }
     }
-}
-
-#[inline(always)]
-fn precompute_soa_triangle2<M: Material>(triangles: &[Arc<Triangle<M>>]) -> [[[f32x4; 4]; 3]; 8] {
-    let mut t_v0x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_edge1x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_edge2x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_normals0x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_normals1x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_normals2x4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_ux4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    let mut t_vx4 = [[f32x4::splat(f32::MAX); 4]; 3];
-    for (idx, triangle) in triangles.iter().enumerate() {
-        let i = idx % 4;
-        let j = idx / 4;
-        for k in 0..3 {
-            t_v0x4[k][i][j] = triangle.vertices[0][k];
-            t_normals0x4[k][i][j] = triangle.normals[0][k];
-            t_normals1x4[k][i][j] = triangle.normals[1][k];
-            t_normals2x4[k][i][j] = triangle.normals[2][k];
-            t_ux4[k][i][j] = triangle.uv[k].0;
-            t_vx4[k][i][j] = triangle.uv[k].1;
-            t_edge1x4[k][i][j] = triangle.vertices[1][k] - triangle.vertices[0][k];
-            t_edge2x4[k][i][j] = triangle.vertices[2][k] - triangle.vertices[0][k];
-        }
-    }
-    [
-        t_v0x4,
-        t_edge1x4,
-        t_edge2x4,
-        t_normals0x4,
-        t_normals1x4,
-        t_normals2x4,
-        t_ux4,
-        t_vx4,
-    ]
 }
 
 #[inline(always)]
