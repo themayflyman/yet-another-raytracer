@@ -484,24 +484,28 @@ pub fn teapot() -> HittableList {
     let mut objects = HittableList::new();
     let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
     let ground = Lambertian::new(SolidColor::new(RGB::new(0.5, 0.5, 0.5)));
-    // let glass = SF66;
-    // let metal = Metal::new(SolidColor::new(RGB::new(0.7, 0.6, 0.5)), 0.0);
-    let gold = Metal::new(SolidColor::new(RGB::new(0.898, 0.722, 0.043)), 1.0);
+    let glass = SF66;
+    // let silver = Metal::new(SolidColor::new(RGB::new(0.7976, 0.7976, 0.7976)), 0.0);
 
     objects.add_object(Arc::new(StillSphere::new(
-        Vec3::new(0.0, 10.0, -2.0),
-        2.0,
+        Vec3::new(30.0, 40.0, -30.0),
+        20.0,
+        light.clone(),
+    )));
+    objects.add_object(Arc::new(StillSphere::new(
+        Vec3::new(-20.0, 10.0, 50.0),
+        10.0,
         light,
     )));
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/teapot.obj"),
-        gold,
+        glass,
     )));
     objects.add_object(Arc::new(Triangle {
         vertices: [
-            Vec3::new(-20.0, 0.0, -30.0),
-            Vec3::new(20.0, 0.0, -30.0),
-            Vec3::new(20.0, 0.0, 30.0),
+            Vec3::new(-80.0, 0.0, -120.0),
+            Vec3::new(80.0, 0.0, -120.0),
+            Vec3::new(80.0, 0.0, 120.0),
         ],
         normals: [
             Vec3::new(0.0, 1.0, 0.0),
@@ -513,9 +517,9 @@ pub fn teapot() -> HittableList {
     }));
     objects.add_object(Arc::new(Triangle {
         vertices: [
-            Vec3::new(-20.0, 0.0, -30.0),
-            Vec3::new(-20.0, 0.0, 30.0),
-            Vec3::new(20.0, 0.0, 30.0),
+            Vec3::new(-80.0, 0.0, -120.0),
+            Vec3::new(-80.0, 0.0, 120.0),
+            Vec3::new(80.0, 0.0, 120.0),
         ],
         normals: [
             Vec3::new(0.0, 1.0, 0.0),

@@ -192,7 +192,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 12;
+    let scene = 11;
 
     let filename = match scene {
         1 => {
@@ -318,19 +318,24 @@ fn main() {
         11 => {
             world = Arc::new(teapot());
             lights.add_object(Arc::new(StillSphere::new(
-                Vec3::new(0.0, 10.0, -2.0),
-                2.0,
+                Vec3::new(30.0, 40.0, -30.0),
+                20.0,
                 NoMaterial,
             )));
-            lookfrom = Vec3::new(0.0, 10.0, 10.0);
-            lookat = Vec3::new(0.0, 1.0, 0.0);
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(-20.0, 10.0, 50.0),
+                10.0,
+                NoMaterial,
+            )));
+            lookfrom = Vec3::new(5.0, 50.0, 60.0);
+            lookat = Vec3::new(0.0, 5.0, 0.0);
             aspect_ratio = 1.0;
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 1;
-            aperture = 0.02;
-            vfov = 35.0;
+            samples_per_pixel = 8000;
+            aperture = 0.001;
+            vfov = 30.0;
 
             "teapot.png"
         }
