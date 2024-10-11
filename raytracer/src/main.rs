@@ -192,7 +192,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 11;
+    let scene = 15;
 
     let filename = match scene {
         1 => {
@@ -421,7 +421,7 @@ fn main() {
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 100;
+            samples_per_pixel = 8000;
             aperture = 0.001;
             vfov = 30.0;
 
@@ -449,7 +449,7 @@ fn main() {
         1.0,
     ));
 
-    let n_workers = 30;
+    let n_workers = 8;
     let mut img = image::RgbaImage::new(image_width as u32, image_height as u32);
     let block_col = 8;
     let block_row = 8;

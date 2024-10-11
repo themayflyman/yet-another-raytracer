@@ -11,16 +11,12 @@ Ray tracer implementation in Rust, based on [Ray Tracing in One Weekend Book Ser
 
 ## Showcases
 
-![tri-sphere](/output/tri-sphere.png)
+![david](/output/david.png)
 
 ![sycee](/output/sycee.png)
 
-![three spheres](/output/three_spheres.png)
+![tri-sphere](/output/tri-sphere.png)
 
 ![Utah teapoto](/output/teapot.png)
 
-![the next week final scene](/output/the_next_week_final_static_scene.png)
-
-![book1 final scene](/output/random_scene.png)
-
-![cornel box that uses mixture pdf to reduce noise](/output/cornell_box.png)
+![three spheres](/output/three_spheres.png)
