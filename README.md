@@ -1,5 +1,7 @@
 # Yet Another Ray Tracer in Rust
 
+![david](/output/david.png)
+
 Ray tracer implementation in Rust, based on [Ray Tracing in One Weekend Book Series](https://raytracing.github.io/).
 
 ## Featured:
@@ -8,15 +10,4 @@ Ray tracer implementation in Rust, based on [Ray Tracing in One Weekend Book Ser
   - Multi-threaded Rendering
   - Static Dispatch
   - Code generation
-
-## Showcases
-
-![david](/output/david.png)
-
-![sycee](/output/sycee.png)
-
-![tri-sphere](/output/tri-sphere.png)
-
-![Utah teapoto](/output/teapot.png)
-
-![three spheres](/output/three_spheres.png)
+  - QBVH with simd instructions
