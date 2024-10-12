@@ -571,7 +571,7 @@ pub fn bunny() -> HittableList {
         material: ground,
     }));
     objects.add_object(Arc::new(StillSphere::new(
-Vec3::new(0.0, 6.0, -2.0),
+        Vec3::new(0.0, 6.0, -2.0),
         2.0,
         light.clone(),
     )));
@@ -583,9 +583,17 @@ pub fn david() -> HittableList {
     let mut objects = HittableList::new();
     let light = DiffuseLight::new(SolidColor::new(RGB::new(5.0, 5.0, 5.0)));
     let white = Lambertian::new(SolidColor::new(RGB::new(1.0, 1.0, 1.0)));
+    let glass = SF66;
     objects.add_object(Arc::new(TriangleMesh::from_obj(
         Path::new("input/david.obj"),
         white,
+    )));
+    objects.add_object(Arc::new(Translate::new(
+        Arc::new(RotateY::new(
+            Arc::new(TriangleMesh::from_obj(Path::new("input/david.obj"), glass)),
+            300.0,
+        )),
+        Vec3::new(50.0, 0.0, 50.0),
     )));
     objects.add_object(Arc::new(StillSphere::new(
         Vec3::new(1200.0, 1300.0, 800.0),

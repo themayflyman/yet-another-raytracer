@@ -415,15 +415,15 @@ fn main() {
                 700.0,
                 NoMaterial,
             )));
-            lookfrom = Vec3::new(-200.0, 100.0, 400.0);
-            lookat = Vec3::new(0.0, 100.0, 0.0);
+            lookfrom = Vec3::new(50.0, 120.0, 300.0);
+            lookat = Vec3::new(0.0, 120.0, 0.0);
             aspect_ratio = 1.0;
             image_width = 1000;
             image_height = 1000;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 8000;
+            samples_per_pixel = 5000;
             aperture = 0.001;
-            vfov = 30.0;
+            vfov = 20.0;
 
             "david.png"
         }
@@ -449,7 +449,7 @@ fn main() {
         1.0,
     ));
 
-    let n_workers = 8;
+    let n_workers = 4;
     let mut img = image::RgbaImage::new(image_width as u32, image_height as u32);
     let block_col = 8;
     let block_row = 8;
