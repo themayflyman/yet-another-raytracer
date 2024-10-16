@@ -80,7 +80,7 @@ impl<M: Material> Hittable for Triangle<M> {
         let p: Vec3 = ray.at(t);
         let w = 1.0 - u - v;
         let outward_normal =
-            self.normals[0] * v + self.normals[1] * u + self.normals[2] * w;
+            self.normals[0] * w + self.normals[1] * u + self.normals[2] * v;
         let normal: Vec3;
         let front_face: bool;
         if ray.direction().dot(&outward_normal) < 0.0 {
@@ -91,8 +91,8 @@ impl<M: Material> Hittable for Triangle<M> {
             front_face = false;
         }
         return Some(HitRecord {
-            u: self.uv[0].0 * v + self.uv[1].0 * u + self.uv[2].0 * w,
-            v: self.uv[0].1 * v + self.uv[1].1 * u + self.uv[2].1 * w,
+            u: self.uv[0].0 * w + self.uv[1].0 * u + self.uv[2].0 * v,
+            v: self.uv[0].1 * w + self.uv[1].1 * u + self.uv[2].1 * v,
             t,
             p,
             normal,
