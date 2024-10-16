@@ -190,7 +190,7 @@ fn main() {
     let mut samples_per_pixel: usize = 100;
     let _filename: &str;
 
-    let scene = 12;
+    let scene = 15;
 
     let filename = match scene {
         1 => {
@@ -378,6 +378,46 @@ fn main() {
             vfov = 30.0;
 
             "sycee.png"
+        }
+
+        15 => {
+            world = Arc::new(david());
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, 800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(-1200.0, 1300.0, 800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, -1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lights.add_object(Arc::new(StillSphere::new(
+                Vec3::new(1200.0, 1300.0, -800.0),
+                700.0,
+                NoMaterial,
+            )));
+            lookfrom = Vec3::new(50.0, 120.0, 300.0);
+            lookat = Vec3::new(0.0, 120.0, 0.0);
+            aspect_ratio = 1.0;
+            image_width = 1000;
+            image_height = 1000;
+            background = RGB::new(0.0, 0.0, 0.0);
+            samples_per_pixel = 1000;
+            aperture = 0.1;
+            vfov = 20.0;
+
+            "david.png"
         }
 
         // 9 => {
