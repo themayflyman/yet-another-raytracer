@@ -1,6 +1,6 @@
 use std::simd::cmp::SimdPartialOrd;
 use std::simd::num::SimdFloat;
-use std::simd::{f32x4, u32x4};
+use std::simd::{f64x4, u32x4};
 use std::sync::Arc;
 
 use crate::aabb::AxisAlignedBoundingBox;
@@ -102,7 +102,7 @@ impl QBVH {
 }
 
 impl Hittable for QBVH {
-    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         Some(AxisAlignedBoundingBox::new(
             Vec3::new(
                 self.nodes[0].bounding_box_min[0].reduce_min(),
@@ -117,29 +117,29 @@ impl Hittable for QBVH {
         ))
     }
 
-    fn hit(&self, ray: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         const MAX_STACK_SIZE: usize = 64;
         let nodes_len = self.nodes.len();
         let mut stack: [u32; MAX_STACK_SIZE] = [nodes_len as u32 - 1; MAX_STACK_SIZE];
         let mut stack_cursor: usize = 0;
         let mut hit_record: Option<HitRecord> = None;
 
-        let ray_origin: [f32x4; 3] = [
-            f32x4::splat(ray.origin().x()),
-            f32x4::splat(ray.origin().y()),
-            f32x4::splat(ray.origin().z()),
+        let ray_origin: [f64x4; 3] = [
+            f64x4::splat(ray.origin().x()),
+            f64x4::splat(ray.origin().y()),
+            f64x4::splat(ray.origin().z()),
         ];
-        let ray_direction: [f32x4; 3] = [
-            f32x4::splat(ray.direction().x()),
-            f32x4::splat(ray.direction().y()),
-            f32x4::splat(ray.direction().z()),
+        let ray_direction: [f64x4; 3] = [
+            f64x4::splat(ray.direction().x()),
+            f64x4::splat(ray.direction().y()),
+            f64x4::splat(ray.direction().z()),
         ];
-        let inv_d: [f32x4; 3] = [
-            f32x4::splat(1.0) / ray_direction[0],
-            f32x4::splat(1.0) / ray_direction[1],
-            f32x4::splat(1.0) / ray_direction[2],
+        let inv_d: [f64x4; 3] = [
+            f64x4::splat(1.0) / ray_direction[0],
+            f64x4::splat(1.0) / ray_direction[1],
+            f64x4::splat(1.0) / ray_direction[2],
         ];
-        let t_minx4 = f32x4::splat(t_min);
+        let t_minx4 = f64x4::splat(t_min);
         let mut t_max = t_max;
 
         loop {
@@ -153,27 +153,27 @@ impl Hittable for QBVH {
                 }
             } else {
                 let node = &self.nodes[id as usize];
-                let t_maxx4 = f32x4::splat(t_max);
+                let t_maxx4 = f64x4::splat(t_max);
 
-                let t0: [f32x4; 3] = [
+                let t0: [f64x4; 3] = [
                     (node.bounding_box_min[0] - ray_origin[0]) * inv_d[0],
                     (node.bounding_box_min[1] - ray_origin[1]) * inv_d[1],
                     (node.bounding_box_min[2] - ray_origin[2]) * inv_d[2],
                 ];
-                let t1: [f32x4; 3] = [
+                let t1: [f64x4; 3] = [
                     (node.bounding_box_max[0] - ray_origin[0]) * inv_d[0],
                     (node.bounding_box_max[1] - ray_origin[1]) * inv_d[1],
                     (node.bounding_box_max[2] - ray_origin[2]) * inv_d[2],
                 ];
 
-                let t_minx4: f32x4 = [
+                let t_minx4: f64x4 = [
                     t0[0].simd_min(t1[0]),
                     t0[1].simd_min(t1[1]),
                     t0[2].simd_min(t1[2]),
                 ]
                 .iter()
                 .fold(t_minx4, |t_minx4, &t_curr| t_minx4.simd_max(t_curr));
-                let t_maxx4: f32x4 = [
+                let t_maxx4: f64x4 = [
                     t0[0].simd_max(t1[0]),
                     t0[1].simd_max(t1[1]),
                     t0[2].simd_max(t1[2]),
@@ -202,8 +202,8 @@ impl Hittable for QBVH {
 
 #[derive(Clone)]
 struct QBVHNode {
-    bounding_box_min: [f32x4; 3],
-    bounding_box_max: [f32x4; 3],
+    bounding_box_min: [f64x4; 3],
+    bounding_box_max: [f64x4; 3],
     children: u32x4, // sign is used to encode whether or not the child is a leaf node, the remaining 31 bits is used to encode the index to refer in triangles
 }
 
@@ -218,8 +218,8 @@ impl QBVHNode {
         rr_bbox: Option<AxisAlignedBoundingBox>,
         rr_index: u32,
     ) -> Self {
-        let mut bounding_box_min = [f32x4::splat(f32::MAX); 3];
-        let mut bounding_box_max = [f32x4::splat(f32::MAX); 3];
+        let mut bounding_box_min = [f64x4::splat(f64::MAX); 3];
+        let mut bounding_box_max = [f64x4::splat(f64::MAX); 3];
         let mut children = u32x4::splat(u32::MAX);
 
         let mut prepare_child_bbox_and_id =
@@ -259,12 +259,12 @@ fn split<'a>(
 ) {
     let (min_x, max_x, min_y, max_y, min_z, max_z) = hittables.iter().fold(
         (
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-            f32::INFINITY,
-            f32::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
         ),
         |(min_x, max_x, min_y, max_y, min_z, max_z), hittable| {
             let centroid = hittable.centroid(0.0, 0.0).unwrap();
@@ -282,11 +282,11 @@ fn split<'a>(
     if max_y - min_y > max_x - min_x {
         axis = 1;
     }
-    if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+    if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
         axis = 2;
     }
     hittables.sort_unstable_by(|a, b| {
-        f32::partial_cmp(
+        f64::partial_cmp(
             &(a.centroid(0.0, 0.0).unwrap()[axis]),
             &(b.centroid(0.0, 0.0).unwrap()[axis]),
         )

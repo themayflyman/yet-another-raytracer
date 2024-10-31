@@ -50,12 +50,12 @@ struct RenderResult {
 }
 
 #[allow(dead_code)]
-fn hit_sphere(center: &Vec3, radius: f32, r: &Ray) -> f32 {
+fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
-    let a: f32 = r.direction().length_squared();
-    let half_b: f32 = oc.dot(&r.direction());
-    let c: f32 = oc.length_squared() - radius * radius;
-    let discriminant: f32 = half_b * half_b - a * c;
+    let a: f64 = r.direction().length_squared();
+    let half_b: f64 = oc.dot(&r.direction());
+    let c: f64 = oc.length_squared() - radius * radius;
+    let discriminant: f64 = half_b * half_b - a * c;
     if discriminant < 0.0 {
         -1.0
     } else {
@@ -74,7 +74,7 @@ fn hit_sphere(center: &Vec3, radius: f32, r: &Ray) -> f32 {
 //         return RGB::default();
 //     }
 //
-//     if let Some(rec) = world.hit(r, 0.001, f32::INFINITY) {
+//     if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
 //         let emitted = rec.material.emitted(&rec, rec.u, rec.v, rec.p);
 //
 //         if let Some(scattered) = rec.material.scatter(r, &rec) {
@@ -127,12 +127,12 @@ fn ray_reflectance(
     lights: Arc<HittableList>,
     background_color: &RGB,
     depth: usize,
-) -> f32 {
+) -> f64 {
     if depth == 0 {
         return 1.0;
     }
 
-    if let Some(hit_record) = world.hit(ray_in, 0.001, f32::INFINITY) {
+    if let Some(hit_record) = world.hit(ray_in, 0.001, f64::INFINITY) {
         let emitted = hit_record.material.emitted(ray_in, &hit_record);
 
         if let Some(scattered) = hit_record.material.scatter(ray_in, &hit_record) {
@@ -174,9 +174,9 @@ fn ray_reflectance(
 
 fn main() {
     // Image
-    let mut aspect_ratio: f32 = 3.0 / 2.0;
+    let mut aspect_ratio: f64 = 3.0 / 2.0;
     let mut image_width: u32 = 1200;
-    let mut image_height: u32 = (image_width as f32 / aspect_ratio) as u32;
+    let mut image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let max_depth: usize = 50;
 
     // World
@@ -184,7 +184,7 @@ fn main() {
     let mut lights: HittableList = HittableList::new();
     let lookfrom: Vec3;
     let lookat: Vec3;
-    let vfov: f32;
+    let vfov: f64;
     let mut aperture = 0.0;
     let background: RGB;
     let mut samples_per_pixel: usize = 100;
@@ -355,7 +355,7 @@ fn main() {
             lookat = Vec3::new(0.0, 1.0, 0.0);
             image_width = 1000;
             image_height = 1000;
-            aspect_ratio = (image_width / image_height) as f32;
+            aspect_ratio = (image_width / image_height) as f64;
             background = RGB::new(0.0, 0.0, 0.0);
             samples_per_pixel = 5000;
             aperture = 0.1;
@@ -371,7 +371,7 @@ fn main() {
             lookat = Vec3::new(0.0, 1.0, 0.0);
             image_width = 1000;
             image_height = 1000;
-            aspect_ratio = (image_width / image_height) as f32;
+            aspect_ratio = (image_width / image_height) as f64;
             background = RGB::new(0.0, 0.0, 0.0);
             samples_per_pixel = 10000;
             aperture = 0.1;
@@ -410,11 +410,11 @@ fn main() {
             lookfrom = Vec3::new(50.0, 120.0, 300.0);
             lookat = Vec3::new(0.0, 120.0, 0.0);
             aspect_ratio = 1.0;
-            image_width = 1000;
-            image_height = 1000;
+            image_width = 800;
+            image_height = 800;
             background = RGB::new(0.0, 0.0, 0.0);
-            samples_per_pixel = 1000;
-            aperture = 0.1;
+            samples_per_pixel = 15000;
+            aperture = 0.01;
             vfov = 20.0;
 
             "david.png"
@@ -471,7 +471,7 @@ fn main() {
     let (tx, rx) = channel();
     for col in 0..block_col {
         for row in 0..block_row {
-            // let scale: f32 = 1.0 / samples_per_pixel as f32;
+            // let scale: f64 = 1.0 / samples_per_pixel as f64;
             let tx = tx.clone();
             let camera = camera.clone();
             let world = world.clone();
@@ -488,10 +488,10 @@ fn main() {
                     // for _s in 0..samples_per_pixel {
                     //     let mut rng = rand::thread_rng();
 
-                    //     let target_x: f32 = x as f32 + crop_x as f32 + rng.gen::<f32>();
-                    //     let u: f32 = target_x / (image_width - 1) as f32;
-                    //     let target_y: f32 = y as f32 + crop_y as f32 + rng.gen::<f32>();
-                    //     let v: f32 = 1.0 - target_y / (image_height - 1) as f32;
+                    //     let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                    //     let u: f64 = target_x / (image_width - 1) as f64;
+                    //     let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                    //     let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
                     //     let r: Ray = camera.get_ray(u, v);
                     //     pixel_color = pixel_color
                     //         + ray_color(&r, background, &world, lights.clone(), max_depth);
@@ -524,10 +524,10 @@ fn main() {
                     let mut pixel_color_xyz = XYZ::default();
                     for _ in 0..samples_per_pixel {
                         let mut rng = rand::thread_rng();
-                        let target_x: f32 = x as f32 + crop_x as f32 + rng.gen::<f32>();
-                        let u: f32 = target_x / (image_width - 1) as f32;
-                        let target_y: f32 = y as f32 + crop_y as f32 + rng.gen::<f32>();
-                        let v: f32 = 1.0 - target_y / (image_height - 1) as f32;
+                        let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                        let u: f64 = target_x / (image_width - 1) as f64;
+                        let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                        let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
                         let wl = gen_wavelength(MIN_LAMBDA, MAX_LAMBDA);
                         let r: Ray = camera.get_ray(u, v, wl);
 
@@ -536,12 +536,12 @@ fn main() {
                     }
 
                     pixel_color_xyz = pixel_color_xyz * (MAX_LAMBDA - MIN_LAMBDA)
-                        / (CIE_Y_INTERGAL * samples_per_pixel as f32);
+                        / (CIE_Y_INTERGAL * samples_per_pixel as f64);
                     let pixel_color_rgb = pixel_color_xyz.into_rgb().gamma_corrected();
                     *pixel = image::Rgba([
-                        (256_f32 * pixel_color_rgb.r()) as u8,
-                        (256_f32 * pixel_color_rgb.g()) as u8,
-                        (256_f32 * pixel_color_rgb.b()) as u8,
+                        (256_f64 * pixel_color_rgb.r()) as u8,
+                        (256_f64 * pixel_color_rgb.g()) as u8,
+                        (256_f64 * pixel_color_rgb.b()) as u8,
                         255,
                     ]);
                 }

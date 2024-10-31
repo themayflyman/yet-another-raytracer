@@ -18,47 +18,47 @@ impl BVHNode {
         objects: &mut Vec<Arc<dyn Hittable>>,
         start: usize,
         end: usize,
-        time0: f32,
-        time1: f32,
+        time0: f64,
+        time1: f64,
     ) -> Self {
         // let mut rnd = rand::thread_rng();
 
         // let axis = rnd.gen_range(0, 3);
         // let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| {
-        //     let max_x = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //     let max_x = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::max(max, centroid.x());
+        //         return f64::max(max, centroid.x());
         //     });
-        //     let max_y = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //     let max_y = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::max(max, centroid.y());
+        //         return f64::max(max, centroid.y());
         //     });
-        //     let max_z = [a, b].iter().fold(f32::NEG_INFINITY, |max, &v| {
+        //     let max_z = [a, b].iter().fold(f64::NEG_INFINITY, |max, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::max(max, centroid.z());
+        //         return f64::max(max, centroid.z());
         //     });
-        //     let min_x = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //     let min_x = [a, b].iter().fold(f64::INFINITY, |min, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::min(min, centroid.x());
+        //         return f64::min(min, centroid.x());
         //     });
-        //     let min_y = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //     let min_y = [a, b].iter().fold(f64::INFINITY, |min, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::min(min, centroid.y());
+        //         return f64::min(min, centroid.y());
         //     });
-        //     let min_z = [a, b].iter().fold(f32::INFINITY, |min, &v| {
+        //     let min_z = [a, b].iter().fold(f64::INFINITY, |min, &v| {
         //         let centroid = v.centroid(time0, time1).unwrap();
-        //         return f32::min(min, centroid.z());
+        //         return f64::min(min, centroid.z());
         //     });
 
         //     let mut axis: usize = 0;
         //     if max_y - min_y > max_x - min_x {
         //         axis = 1;
         //     }
-        //     if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+        //     if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
         //         axis = 2;
         //     }
 
-        //     f32::partial_cmp(
+        //     f64::partial_cmp(
         //         &(a.centroid(time0, time1).unwrap()[axis]),
         //         &(b.centroid(time0, time1).unwrap()[axis]),
         //     )
@@ -69,22 +69,22 @@ impl BVHNode {
 
         let (min_x, max_x, min_y, max_y, min_z, max_z) = objects.iter().fold(
             (
-                f32::INFINITY,
-                f32::NEG_INFINITY,
-                f32::INFINITY,
-                f32::NEG_INFINITY,
-                f32::INFINITY,
-                f32::NEG_INFINITY,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
             ),
             |(min_x, max_x, min_y, max_y, min_z, max_z), obj| {
                 let centroid = obj.centroid(time0, time1).unwrap();
                 (
-                    f32::min(min_x, centroid.x()),
-                    f32::max(max_x, centroid.x()),
-                    f32::min(min_y, centroid.y()),
-                    f32::max(max_y, centroid.y()),
-                    f32::min(min_z, centroid.z()),
-                    f32::max(max_z, centroid.z()),
+                    f64::min(min_x, centroid.x()),
+                    f64::max(max_x, centroid.x()),
+                    f64::min(min_y, centroid.y()),
+                    f64::max(max_y, centroid.y()),
+                    f64::min(min_z, centroid.z()),
+                    f64::max(max_z, centroid.z()),
                 )
             },
         );
@@ -92,11 +92,11 @@ impl BVHNode {
         if max_y - min_y > max_x - min_x {
             axis = 1;
         }
-        if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+        if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
             axis = 2;
         }
         objects.sort_unstable_by(|a, b| {
-            f32::partial_cmp(
+            f64::partial_cmp(
                 &(a.centroid(time0, time1).unwrap()[axis]),
                 &(b.centroid(time0, time1).unwrap()[axis]),
             )
@@ -149,7 +149,7 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         // let mut hit_rec = None;
         // let mut closest_so_far = t_max;
 
@@ -206,7 +206,7 @@ impl Hittable for BVHNode {
         }
     }
 
-    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         Some(self.aabb_box)
     }
 }
@@ -233,7 +233,7 @@ impl<L: Hittable, R: Hittable> BVHNodeStatic<L, R> {
 }
 
 impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         match self.aabb_box.hit(ray, t_min, t_max) {
             false => None,
             true => {
@@ -255,7 +255,7 @@ impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
         }
     }
 
-    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         Some(self.aabb_box)
     }
 }
@@ -275,7 +275,7 @@ mod tests {
     pub fn rand_in_unit_sphere() -> Vec3 {
         let mut rng = thread_rng();
         let mut p: Vec3;
-        let mut gen_component = || rng.gen::<f32>().mul_add(1.0 + 1.0, -1.0);
+        let mut gen_component = || rng.gen::<f64>().mul_add(1.0 + 1.0, -1.0);
         while {
             p = Vec3::new(gen_component(), gen_component(), gen_component());
             p.length_squared() >= 1.0
@@ -289,8 +289,8 @@ mod tests {
         let mut rng = thread_rng();
         for _ in 0..n {
             let center = rand_in_unit_sphere();
-            let tmp: f32 = rng.gen();
-            let radius = tmp / 10.0 / f32::cbrt(n as f32);
+            let tmp: f64 = rng.gen();
+            let radius = tmp / 10.0 / f64::cbrt(n as f64);
             let sphere = Arc::new(StillSphere::new(center, radius, texture.clone()));
             hitables.add_object(sphere);
         }
@@ -304,15 +304,15 @@ mod tests {
         let mut rng = thread_rng();
         for _ in 0..n {
             let center = rand_in_unit_sphere();
-            let tmp: f32 = rng.gen();
-            let radius = tmp / 10.0 / f32::cbrt(n as f32);
+            let tmp: f64 = rng.gen();
+            let radius = tmp / 10.0 / f64::cbrt(n as f64);
             let sphere = Arc::new(StillSphere::new(center, radius, texture.clone()));
             hitables.add_object(sphere);
         }
         let ray = black_box(Ray::new(Vec3::new(-3.0, -2.0, -1.0), Vec3::new(3.0, 2.0, 1.0), 500.0, 0.0));
         let hittable_size = hitables.size();
         let bvh_node = BVHNode::new(&mut hitables.objects, 0, hittable_size, 0.0, 0.0);
-        bench.iter(|| black_box(bvh_node.hit(&ray, f32::EPSILON, f32::INFINITY)) );
+        bench.iter(|| black_box(bvh_node.hit(&ray, f64::EPSILON, f64::INFINITY)) );
     }
 
     #[bench]
