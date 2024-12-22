@@ -4,12 +4,12 @@ use crate::vec3::Vec3;
 pub struct Ray {
     origin: Vec3,    // the ray origin
     direction: Vec3, // the ray direction
-    time: f32,
-    pub wavelength: f32
+    time: f64,
+    pub wavelength: f64
 }
 
 impl Ray {
-    pub fn new(origin: Vec3, direction: Vec3, time: f32, wavelength: f32) -> Ray {
+    pub fn new(origin: Vec3, direction: Vec3, time: f64, wavelength: f64) -> Ray {
         Ray {
             origin,
             direction,
@@ -26,11 +26,11 @@ impl Ray {
         self.direction
     }
 
-    pub fn time(&self) -> f32 {
+    pub fn time(&self) -> f64 {
         self.time
     }
 
-    pub fn at(&self, t: f32) -> Vec3 {
+    pub fn at(&self, t: f64) -> Vec3 {
         self.origin + t * self.direction
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ops::Not;
 use std::simd::cmp::SimdPartialOrd;
 use std::simd::num::SimdFloat;
-use std::simd::{f32x4, u32x4};
+use std::simd::{f64x4, u32x4};
 use std::sync::Arc;
 
 use crate::aabb::AxisAlignedBoundingBox;
@@ -116,7 +116,7 @@ impl<T: Hittable + ?Sized> L1QBVH<T> {
 }
 
 impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
-    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         let nodes_len = self.nodes.len();
         Some(AxisAlignedBoundingBox::new(
             Vec3::new(
@@ -132,7 +132,7 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
         ))
     }
 
-    fn hit(&self, ray: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         const MAX_STACK_SIZE: usize = 64;
         let nodes_len = self.nodes.len();
         let mut stack: [u32; MAX_STACK_SIZE] = [nodes_len as u32 - 1; MAX_STACK_SIZE];
@@ -144,22 +144,22 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
             ray.direction().y() >= 0.0,
             ray.direction().z() >= 0.0,
         ];
-        let rox4: [f32x4; 3] = [
-            f32x4::splat(ray.origin().x()),
-            f32x4::splat(ray.origin().y()),
-            f32x4::splat(ray.origin().z()),
+        let rox4: [f64x4; 3] = [
+            f64x4::splat(ray.origin().x()),
+            f64x4::splat(ray.origin().y()),
+            f64x4::splat(ray.origin().z()),
         ];
-        let rdx4: [f32x4; 3] = [
-            f32x4::splat(ray.direction().x()),
-            f32x4::splat(ray.direction().y()),
-            f32x4::splat(ray.direction().z()),
+        let rdx4: [f64x4; 3] = [
+            f64x4::splat(ray.direction().x()),
+            f64x4::splat(ray.direction().y()),
+            f64x4::splat(ray.direction().z()),
         ];
-        let inv_rdx4: [f32x4; 3] = [
-            f32x4::splat(1.0) / rdx4[0],
-            f32x4::splat(1.0) / rdx4[1],
-            f32x4::splat(1.0) / rdx4[2],
+        let inv_rdx4: [f64x4; 3] = [
+            f64x4::splat(1.0) / rdx4[0],
+            f64x4::splat(1.0) / rdx4[1],
+            f64x4::splat(1.0) / rdx4[2],
         ];
-        let t_minx4 = f32x4::splat(t_min);
+        let t_minx4 = f64x4::splat(t_min);
         let mut t_max = t_max;
 
         loop {
@@ -173,27 +173,27 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
                 }
             } else {
                 let node = &self.nodes[id as usize];
-                let t_maxx4 = f32x4::splat(t_max);
+                let t_maxx4 = f64x4::splat(t_max);
 
-                let t0: [f32x4; 3] = [
+                let t0: [f64x4; 3] = [
                     (node.bounding_box_min[0] - rox4[0]) * inv_rdx4[0],
                     (node.bounding_box_min[1] - rox4[1]) * inv_rdx4[1],
                     (node.bounding_box_min[2] - rox4[2]) * inv_rdx4[2],
                 ];
-                let t1: [f32x4; 3] = [
+                let t1: [f64x4; 3] = [
                     (node.bounding_box_max[0] - rox4[0]) * inv_rdx4[0],
                     (node.bounding_box_max[1] - rox4[1]) * inv_rdx4[1],
                     (node.bounding_box_max[2] - rox4[2]) * inv_rdx4[2],
                 ];
 
-                let t_minx4: f32x4 = [
+                let t_minx4: f64x4 = [
                     t0[0].simd_min(t1[0]),
                     t0[1].simd_min(t1[1]),
                     t0[2].simd_min(t1[2]),
                 ]
                 .iter()
                 .fold(t_minx4, |t_minx4, &t_curr| t_minx4.simd_max(t_curr));
-                let t_maxx4: f32x4 = [
+                let t_maxx4: f64x4 = [
                     t0[0].simd_max(t1[0]),
                     t0[1].simd_max(t1[1]),
                     t0[2].simd_max(t1[2]),
@@ -233,7 +233,7 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
 pub struct L4QBVH<M: Material> {
     triangles: Vec<Arc<Triangle<M>>>,
     nodes: Vec<QBVHNode>,
-    soa: HashMap<u32, [[f32x4; 3]; 8]>,
+    soa: HashMap<u32, [[f64x4; 3]; 8]>,
 }
 
 impl<M: Material> L4QBVH<M> {
@@ -242,7 +242,7 @@ impl<M: Material> L4QBVH<M> {
             triangles: &mut [Arc<Triangle<M>>],
             nodes: &mut Vec<QBVHNode>,
             indices: &mut [usize],
-            soa: &mut HashMap<u32, [[f32x4; 3]; 8]>,
+            soa: &mut HashMap<u32, [[f64x4; 3]; 8]>,
         ) -> (Option<AxisAlignedBoundingBox>, u32) {
             if triangles.len() == 0 {
                 (None, u32::MAX)
@@ -337,7 +337,7 @@ impl<M: Material> L4QBVH<M> {
         let mut triangles: Vec<Arc<Triangle<M>>> = triangles.clone();
         let mut nodes: Vec<QBVHNode> = vec![];
         let mut indices: Vec<usize> = (0..triangles.len()).collect();
-        let mut soa: HashMap<u32, [[f32x4; 3]; 8]> = HashMap::new();
+        let mut soa: HashMap<u32, [[f64x4; 3]; 8]> = HashMap::new();
 
         construct(&mut triangles, &mut nodes, &mut indices, &mut soa);
 
@@ -350,7 +350,7 @@ impl<M: Material> L4QBVH<M> {
 }
 
 impl<M: Material> Hittable for L4QBVH<M> {
-    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AxisAlignedBoundingBox> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AxisAlignedBoundingBox> {
         let nodes_len = self.nodes.len();
         Some(AxisAlignedBoundingBox::new(
             Vec3::new(
@@ -366,7 +366,7 @@ impl<M: Material> Hittable for L4QBVH<M> {
         ))
     }
 
-    fn hit(&self, ray: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         const MAX_STACK_SIZE: usize = 64;
         let nodes_len = self.nodes.len();
         let mut stack: [u32; MAX_STACK_SIZE] = [nodes_len as u32 - 1; MAX_STACK_SIZE];
@@ -378,22 +378,22 @@ impl<M: Material> Hittable for L4QBVH<M> {
             ray.direction().y() >= 0.0,
             ray.direction().z() >= 0.0,
         ];
-        let rox4: [f32x4; 3] = [
-            f32x4::splat(ray.origin().x()),
-            f32x4::splat(ray.origin().y()),
-            f32x4::splat(ray.origin().z()),
+        let rox4: [f64x4; 3] = [
+            f64x4::splat(ray.origin().x()),
+            f64x4::splat(ray.origin().y()),
+            f64x4::splat(ray.origin().z()),
         ];
-        let rdx4: [f32x4; 3] = [
-            f32x4::splat(ray.direction().x()),
-            f32x4::splat(ray.direction().y()),
-            f32x4::splat(ray.direction().z()),
+        let rdx4: [f64x4; 3] = [
+            f64x4::splat(ray.direction().x()),
+            f64x4::splat(ray.direction().y()),
+            f64x4::splat(ray.direction().z()),
         ];
-        let inv_rdx4: [f32x4; 3] = [
-            f32x4::splat(1.0) / rdx4[0],
-            f32x4::splat(1.0) / rdx4[1],
-            f32x4::splat(1.0) / rdx4[2],
+        let inv_rdx4: [f64x4; 3] = [
+            f64x4::splat(1.0) / rdx4[0],
+            f64x4::splat(1.0) / rdx4[1],
+            f64x4::splat(1.0) / rdx4[2],
         ];
-        let t_minx4 = f32x4::splat(t_min);
+        let t_minx4 = f64x4::splat(t_min);
         let mut t_max = t_max;
 
         loop {
@@ -412,11 +412,11 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 ];
                 let ax4 = edge1x4[0] * hx4[0] + edge1x4[1] * hx4[1] + edge1x4[2] * hx4[2];
 
-                let mut hitx4 = (ax4.simd_gt(-f32x4::splat(f32::EPSILON))
-                    & ax4.simd_lt(f32x4::splat(f32::EPSILON)))
+                let mut hitx4 = (ax4.simd_gt(-f64x4::splat(f64::EPSILON))
+                    & ax4.simd_lt(f64x4::splat(f64::EPSILON)))
                 .not();
 
-                let fx4 = f32x4::splat(1.0) / ax4;
+                let fx4 = f64x4::splat(1.0) / ax4;
                 let sx4 = [
                     rox4[0] - t_v0x4[0],
                     rox4[1] - t_v0x4[1],
@@ -424,7 +424,7 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 ];
                 let ux4 = fx4 * (sx4[0] * hx4[0] + sx4[1] * hx4[1] + sx4[2] * hx4[2]);
 
-                hitx4 &= ux4.simd_ge(f32x4::splat(0.0)) & ux4.simd_le(f32x4::splat(1.0));
+                hitx4 &= ux4.simd_ge(f64x4::splat(0.0)) & ux4.simd_le(f64x4::splat(1.0));
 
                 let qx4 = [
                     sx4[1] * edge1x4[2] - sx4[2] * edge1x4[1],
@@ -432,17 +432,17 @@ impl<M: Material> Hittable for L4QBVH<M> {
                     sx4[0] * edge1x4[1] - sx4[1] * edge1x4[0],
                 ];
                 let vx4 = fx4 * (rdx4[0] * qx4[0] + rdx4[1] * qx4[1] + rdx4[2] * qx4[2]);
-                hitx4 &= vx4.simd_ge(f32x4::splat(0.0)) & (ux4 + vx4).simd_le(f32x4::splat(1.0));
+                hitx4 &= vx4.simd_ge(f64x4::splat(0.0)) & (ux4 + vx4).simd_le(f64x4::splat(1.0));
 
                 let tx4 = fx4 * (edge2x4[0] * qx4[0] + edge2x4[1] * qx4[1] + edge2x4[2] * qx4[2]);
-                hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f32x4::splat(t_max));
+                hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f64x4::splat(t_max));
 
                 let px4 = [
                     rox4[0] + tx4 * rdx4[0],
                     rox4[1] + tx4 * rdx4[1],
                     rox4[2] + tx4 * rdx4[2],
                 ];
-                let wx4 = f32x4::splat(1.0) - ux4 - vx4;
+                let wx4 = f64x4::splat(1.0) - ux4 - vx4;
                 let outward_normalx4 = [
                     t_normals0x4[0] * wx4 + t_normals1x4[0] * ux4 + t_normals2x4[0] * vx4,
                     t_normals0x4[1] * wx4 + t_normals1x4[1] * ux4 + t_normals2x4[1] * vx4,
@@ -451,13 +451,13 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 let ffx4 = (rdx4[0] * outward_normalx4[0]
                     + rdx4[1] * outward_normalx4[1]
                     + rdx4[2] * outward_normalx4[2])
-                    .simd_le(f32x4::splat(0.0));
+                    .simd_le(f64x4::splat(0.0));
                 let h_ux4 = t_ux4[0] * wx4 + t_ux4[1] * ux4 + t_ux4[2] * vx4;
                 let h_vx4 = t_vx4[0] * wx4 + t_vx4[1] * ux4 + t_vx4[2] * vx4;
 
                 for i in 0..count {
                     let ff = ffx4.test(i);
-                    let sign: f32 = if ff { 1.0 } else { -1.0 };
+                    let sign: f64 = if ff { 1.0 } else { -1.0 };
                     let normal = Vec3::new(
                         sign * outward_normalx4[0][i],
                         sign * outward_normalx4[1][i],
@@ -478,27 +478,27 @@ impl<M: Material> Hittable for L4QBVH<M> {
                 }
             } else {
                 let node = &self.nodes[id as usize];
-                let t_maxx4 = f32x4::splat(t_max);
+                let t_maxx4 = f64x4::splat(t_max);
 
-                let t0: [f32x4; 3] = [
+                let t0: [f64x4; 3] = [
                     (node.bounding_box_min[0] - rox4[0]) * inv_rdx4[0],
                     (node.bounding_box_min[1] - rox4[1]) * inv_rdx4[1],
                     (node.bounding_box_min[2] - rox4[2]) * inv_rdx4[2],
                 ];
-                let t1: [f32x4; 3] = [
+                let t1: [f64x4; 3] = [
                     (node.bounding_box_max[0] - rox4[0]) * inv_rdx4[0],
                     (node.bounding_box_max[1] - rox4[1]) * inv_rdx4[1],
                     (node.bounding_box_max[2] - rox4[2]) * inv_rdx4[2],
                 ];
 
-                let t_minx4: f32x4 = [
+                let t_minx4: f64x4 = [
                     t0[0].simd_min(t1[0]),
                     t0[1].simd_min(t1[1]),
                     t0[2].simd_min(t1[2]),
                 ]
                 .iter()
                 .fold(t_minx4, |t_minx4, &t_curr| t_minx4.simd_max(t_curr));
-                let t_maxx4: f32x4 = [
+                let t_maxx4: f64x4 = [
                     t0[0].simd_max(t1[0]),
                     t0[1].simd_max(t1[1]),
                     t0[2].simd_max(t1[2]),
@@ -536,8 +536,8 @@ impl<M: Material> Hittable for L4QBVH<M> {
 
 #[derive(Clone)]
 struct QBVHNode {
-    bounding_box_min: [f32x4; 3],
-    bounding_box_max: [f32x4; 3],
+    bounding_box_min: [f64x4; 3],
+    bounding_box_max: [f64x4; 3],
     children: u32x4, // sign is used to encode whether or not the child is a leaf node, the remaining 31 bits is used to encode the index to refer in triangles
     top_axis: usize,
     left_axis: usize,
@@ -558,8 +558,8 @@ impl QBVHNode {
         left_axis: usize,
         right_axis: usize,
     ) -> Self {
-        let mut bounding_box_min = [f32x4::splat(f32::MAX); 3];
-        let mut bounding_box_max = [f32x4::splat(f32::MAX); 3];
+        let mut bounding_box_min = [f64x4::splat(f64::MAX); 3];
+        let mut bounding_box_max = [f64x4::splat(f64::MAX); 3];
         let mut children = u32x4::splat(u32::MAX);
 
         let mut prepare_child_bbox_and_id =
@@ -591,15 +591,15 @@ impl QBVHNode {
 }
 
 #[inline(always)]
-fn precompute_soa_triangle<M: Material>(triangles: &[Arc<Triangle<M>>]) -> [[f32x4; 3]; 8] {
-    let mut t_v0x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_edge1x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_edge2x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_normals0x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_normals1x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_normals2x4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_ux4 = [f32x4::splat(f32::MAX); 3];
-    let mut t_vx4 = [f32x4::splat(f32::MAX); 3];
+fn precompute_soa_triangle<M: Material>(triangles: &[Arc<Triangle<M>>]) -> [[f64x4; 3]; 8] {
+    let mut t_v0x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_edge1x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_edge2x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_normals0x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_normals1x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_normals2x4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_ux4 = [f64x4::splat(f64::MAX); 3];
+    let mut t_vx4 = [f64x4::splat(f64::MAX); 3];
     for (i, triangle) in triangles.iter().enumerate() {
         for j in 0..3 {
             t_v0x4[j][i] = triangle.vertices[0][j];
@@ -637,12 +637,12 @@ fn split<'a, T: Hittable + ?Sized>(
 ) {
     let (min_x, max_x, min_y, max_y, min_z, max_z) = hittables.iter().fold(
         (
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-            f32::INFINITY,
-            f32::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
         ),
         |(min_x, max_x, min_y, max_y, min_z, max_z), hittable| {
             let centroid = hittable.centroid(0.0, 0.0).unwrap();
@@ -660,11 +660,11 @@ fn split<'a, T: Hittable + ?Sized>(
     if max_y - min_y > max_x - min_x {
         axis = 1;
     }
-    if max_z - min_z > f32::max(max_y - min_y, max_x - min_x) {
+    if max_z - min_z > f64::max(max_y - min_y, max_x - min_x) {
         axis = 2;
     }
     hittables.sort_unstable_by(|a, b| {
-        f32::partial_cmp(
+        f64::partial_cmp(
             &(a.centroid(0.0, 0.0).unwrap()[axis]),
             &(b.centroid(0.0, 0.0).unwrap()[axis]),
         )
@@ -688,18 +688,18 @@ fn hit_trianglex4<'a, M: Material>(
     index: usize,
     count: usize,
     hit_record: &'a mut Option<HitRecord<'a>>,
-    t_minx4: f32x4,
-    t_max: &'a mut f32,
-    rox4: &'a [f32x4; 3],
-    rdx4: &'a [f32x4; 3],
-    t_v0x4: &'a [f32x4; 3],
-    t_edge1x4: &'a [f32x4; 3],
-    t_edge2x4: &'a [f32x4; 3],
-    t_normals0x4: &'a [f32x4; 3],
-    t_normals1x4: &'a [f32x4; 3],
-    t_normals2x4: &'a [f32x4; 3],
-    t_ux4: &'a [f32x4; 3],
-    t_vx4: &'a [f32x4; 3],
+    t_minx4: f64x4,
+    t_max: &'a mut f64,
+    rox4: &'a [f64x4; 3],
+    rdx4: &'a [f64x4; 3],
+    t_v0x4: &'a [f64x4; 3],
+    t_edge1x4: &'a [f64x4; 3],
+    t_edge2x4: &'a [f64x4; 3],
+    t_normals0x4: &'a [f64x4; 3],
+    t_normals1x4: &'a [f64x4; 3],
+    t_normals2x4: &'a [f64x4; 3],
+    t_ux4: &'a [f64x4; 3],
+    t_vx4: &'a [f64x4; 3],
     triangles: &'a [Arc<Triangle<M>>],
 ) {
     let hx4 = [
@@ -710,9 +710,9 @@ fn hit_trianglex4<'a, M: Material>(
     let ax4 = t_edge1x4[0] * hx4[0] + t_edge1x4[1] * hx4[1] + t_edge1x4[2] * hx4[2];
 
     let mut hitx4 =
-        (ax4.simd_gt(-f32x4::splat(f32::EPSILON)) & ax4.simd_lt(f32x4::splat(f32::EPSILON))).not();
+        (ax4.simd_gt(-f64x4::splat(f64::EPSILON)) & ax4.simd_lt(f64x4::splat(f64::EPSILON))).not();
 
-    let fx4 = f32x4::splat(1.0) / ax4;
+    let fx4 = f64x4::splat(1.0) / ax4;
     let sx4 = [
         rox4[0] - t_v0x4[0],
         rox4[1] - t_v0x4[1],
@@ -720,7 +720,7 @@ fn hit_trianglex4<'a, M: Material>(
     ];
     let ux4 = fx4 * (sx4[0] * hx4[0] + sx4[1] * hx4[1] + sx4[2] * hx4[2]);
 
-    hitx4 &= ux4.simd_ge(f32x4::splat(0.0)) & ux4.simd_le(f32x4::splat(1.0));
+    hitx4 &= ux4.simd_ge(f64x4::splat(0.0)) & ux4.simd_le(f64x4::splat(1.0));
 
     let qx4 = [
         sx4[1] * t_edge1x4[2] - sx4[2] * t_edge1x4[1],
@@ -728,17 +728,17 @@ fn hit_trianglex4<'a, M: Material>(
         sx4[0] * t_edge1x4[1] - sx4[1] * t_edge1x4[0],
     ];
     let vx4 = fx4 * (rdx4[0] * qx4[0] + rdx4[1] * qx4[1] + rdx4[2] * qx4[2]);
-    hitx4 &= vx4.simd_ge(f32x4::splat(0.0)) & (ux4 + vx4).simd_le(f32x4::splat(1.0));
+    hitx4 &= vx4.simd_ge(f64x4::splat(0.0)) & (ux4 + vx4).simd_le(f64x4::splat(1.0));
 
     let tx4 = fx4 * (t_edge2x4[0] * qx4[0] + t_edge2x4[1] * qx4[1] + t_edge2x4[2] * qx4[2]);
-    hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f32x4::splat(*t_max));
+    hitx4 &= tx4.simd_ge(t_minx4) & tx4.simd_le(f64x4::splat(*t_max));
 
     let px4 = [
         rox4[0] + tx4 * rdx4[0],
         rox4[1] + tx4 * rdx4[1],
         rox4[2] + tx4 * rdx4[2],
     ];
-    let wx4 = f32x4::splat(1.0) - ux4 - vx4;
+    let wx4 = f64x4::splat(1.0) - ux4 - vx4;
     let outward_normalx4 = [
         t_normals0x4[0] * vx4 + t_normals1x4[0] * ux4 + t_normals2x4[0] * wx4,
         t_normals0x4[1] * vx4 + t_normals1x4[1] * ux4 + t_normals2x4[1] * wx4,
@@ -747,13 +747,13 @@ fn hit_trianglex4<'a, M: Material>(
     let ffx4 = (rdx4[0] * outward_normalx4[0]
         + rdx4[1] * outward_normalx4[1]
         + rdx4[2] * outward_normalx4[2])
-        .simd_le(f32x4::splat(0.0));
+        .simd_le(f64x4::splat(0.0));
     let h_ux4 = t_ux4[0] * vx4 + t_ux4[1] * ux4 + t_ux4[2] * wx4;
     let h_vx4 = t_vx4[0] * vx4 + t_vx4[1] * ux4 + t_vx4[2] * wx4;
 
     for i in 0..count {
         let ff = ffx4.test(i);
-        let sign: f32 = if ff { 1.0 } else { -1.0 };
+        let sign: f64 = if ff { 1.0 } else { -1.0 };
         let normal = Vec3::new(
             sign * outward_normalx4[0][i],
             sign * outward_normalx4[1][i],
@@ -783,7 +783,7 @@ mod tests {
     use crate::ray::Ray;
     use crate::texture::SolidColor;
     use crate::vec3::Vec3;
-    use core::f32;
+    use core::f64;
     use rand::prelude::*;
     use std::path::Path;
     use test::{black_box, Bencher};
@@ -811,7 +811,7 @@ mod tests {
             } else {
                 mesh.indices.iter().map(|_| None).collect()
             };
-            let mesh_uv: Vec<Option<(f32, f32)>> = if !mesh.texcoords.is_empty() {
+            let mesh_uv: Vec<Option<(f64, f64)>> = if !mesh.texcoords.is_empty() {
                 mesh.texcoords
                     .chunks_exact(2)
                     .map(|uv| Some((uv[0].into(), uv[1].into())))
@@ -876,7 +876,7 @@ mod tests {
             } else {
                 mesh.indices.iter().map(|_| None).collect()
             };
-            let mesh_uv: Vec<Option<(f32, f32)>> = if !mesh.texcoords.is_empty() {
+            let mesh_uv: Vec<Option<(f64, f64)>> = if !mesh.texcoords.is_empty() {
                 mesh.texcoords
                     .chunks_exact(2)
                     .map(|uv| Some((uv[0].into(), uv[1].into())))
@@ -968,7 +968,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -983,7 +983,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -998,7 +998,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1013,7 +1013,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1028,7 +1028,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1043,7 +1043,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1058,7 +1058,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1073,7 +1073,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1088,7 +1088,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1103,7 +1103,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1118,7 +1118,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l1_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l1_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1133,7 +1133,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(l4_qbvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(l4_qbvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1221,7 +1221,7 @@ mod tests {
     fn bench_4_triangles_best_case_hit_indiviually(bencher: &mut Bencher) {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, false);
 
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f64::INFINITY;
         bencher.iter(|| {
             for triangle in triangles.iter() {
                 if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
@@ -1235,7 +1235,7 @@ mod tests {
     fn bench_4_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, true);
 
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f64::INFINITY;
         bencher.iter(|| {
             for triangle in triangles.iter() {
                 if let Some(hit_record) = black_box(triangle.hit(&ray, 0.00, t_max)) {
@@ -1245,16 +1245,16 @@ mod tests {
         });
     }
 
-    fn change_ray_layout(ray: &Ray) -> ([f32x4; 3], [f32x4; 3]) {
+    fn change_ray_layout(ray: &Ray) -> ([f64x4; 3], [f64x4; 3]) {
         let rox4 = [
-            f32x4::splat(ray.origin().x()),
-            f32x4::splat(ray.origin().y()),
-            f32x4::splat(ray.origin().z()),
+            f64x4::splat(ray.origin().x()),
+            f64x4::splat(ray.origin().y()),
+            f64x4::splat(ray.origin().z()),
         ];
         let rdx4 = [
-            f32x4::splat(ray.direction().x()),
-            f32x4::splat(ray.direction().y()),
-            f32x4::splat(ray.direction().z()),
+            f64x4::splat(ray.direction().x()),
+            f64x4::splat(ray.direction().y()),
+            f64x4::splat(ray.direction().z()),
         ];
         (rox4, rdx4)
     }
@@ -1264,7 +1264,7 @@ mod tests {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(4, false);
 
         let (rox4, rdx4) = change_ray_layout(&ray);
-        let t_minx4 = f32x4::splat(0.0);
+        let t_minx4 = f64x4::splat(0.0);
         let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
             precompute_soa_triangle(&triangles);
 
@@ -1272,7 +1272,7 @@ mod tests {
         let count = triangles.len();
 
         bencher.iter(|| {
-            let mut t_max = f32::INFINITY;
+            let mut t_max = f64::INFINITY;
             let mut hit_record = None;
             black_box(hit_trianglex4(
                 index,
@@ -1301,7 +1301,7 @@ mod tests {
 
         let (rox4, rdx4) = change_ray_layout(&ray);
 
-        let t_minx4 = f32x4::splat(0.0);
+        let t_minx4 = f64x4::splat(0.0);
         let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
             precompute_soa_triangle(&triangles);
 
@@ -1309,7 +1309,7 @@ mod tests {
         let count = triangles.len();
 
         bencher.iter(|| {
-            let mut t_max = f32::INFINITY;
+            let mut t_max = f64::INFINITY;
             let mut hit_record = None;
             black_box(hit_trianglex4(
                 index,
@@ -1336,7 +1336,7 @@ mod tests {
     fn bench_1_triangle_worst_case_hit_indiviually(bencher: &mut Bencher) {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(1, true);
 
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f64::INFINITY;
         bencher.iter(|| {
             for triangle in triangles.iter() {
                 if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
@@ -1351,7 +1351,7 @@ mod tests {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(1, true);
 
         let (rox4, rdx4) = change_ray_layout(&ray);
-        let t_minx4 = f32x4::splat(0.0);
+        let t_minx4 = f64x4::splat(0.0);
         let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
             precompute_soa_triangle(&triangles);
 
@@ -1359,7 +1359,7 @@ mod tests {
         let count = triangles.len();
 
         bencher.iter(|| {
-            let mut t_max = f32::INFINITY;
+            let mut t_max = f64::INFINITY;
             let mut hit_record = None;
             black_box(hit_trianglex4(
                 index,
@@ -1386,7 +1386,7 @@ mod tests {
     fn bench_2_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(2, true);
 
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f64::INFINITY;
         bencher.iter(|| {
             for triangle in triangles.iter() {
                 if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
@@ -1401,7 +1401,7 @@ mod tests {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(2, true);
 
         let (rox4, rdx4) = change_ray_layout(&ray);
-        let t_minx4 = f32x4::splat(0.0);
+        let t_minx4 = f64x4::splat(0.0);
         let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
             precompute_soa_triangle(&triangles);
 
@@ -1409,7 +1409,7 @@ mod tests {
         let count = triangles.len();
 
         bencher.iter(|| {
-            let mut t_max = f32::INFINITY;
+            let mut t_max = f64::INFINITY;
             let mut hit_record = None;
             black_box(hit_trianglex4(
                 index,
@@ -1436,7 +1436,7 @@ mod tests {
     fn bench_3_triangles_worst_case_hit_indiviually(bencher: &mut Bencher) {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(3, true);
 
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f64::INFINITY;
         bencher.iter(|| {
             for triangle in triangles.iter() {
                 if let Some(hit_record) = triangle.hit(&ray, 0.00, t_max) {
@@ -1451,7 +1451,7 @@ mod tests {
         let (triangles, ray) = get_triangles_and_ray_for_hit_test(3, true);
 
         let (rox4, rdx4) = change_ray_layout(&ray);
-        let t_minx4 = f32x4::splat(0.0);
+        let t_minx4 = f64x4::splat(0.0);
         let [t_v0x4, t_edge1x4, t_edge2x4, t_normals0x4, t_normals1x4, t_normals2x4, t_ux4, t_vx4] =
             precompute_soa_triangle(&triangles);
 
@@ -1459,7 +1459,7 @@ mod tests {
         let count = triangles.len();
 
         bencher.iter(|| {
-            let mut t_max = f32::INFINITY;
+            let mut t_max = f64::INFINITY;
             let mut hit_record = None;
             black_box(hit_trianglex4(
                 index,
@@ -1494,7 +1494,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(bvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(bvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 
@@ -1510,7 +1510,7 @@ mod tests {
 
         bencher.iter(|| {
             let ray = rays_in.next().unwrap();
-            black_box(bvh.hit(&ray, 0.0, f32::INFINITY));
+            black_box(bvh.hit(&ray, 0.0, f64::INFINITY));
         });
     }
 }
