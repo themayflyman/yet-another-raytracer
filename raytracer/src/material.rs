@@ -14,7 +14,6 @@ pub struct Scatter {
     // pub color: RGB,
     pub attenuation: f64,
     pub ray: Option<Ray>,
-    pub is_specular: bool,
     pub pdf: Option<Arc<dyn Pdf>>,
 }
 
@@ -48,7 +47,6 @@ impl<T: Texture> Material for Lambertian<T> {
             // color: self.albedo.value(ray_in.u, hit_record),
             attenuation: self.albedo.value(ray_in, hit_record),
             ray: None,
-            is_specular: false,
             pdf: Some(Arc::new(CosinePDF::new(hit_record.normal))),
         })
     }
@@ -91,7 +89,6 @@ impl<T: Texture> Material for Metal<T> {
         Some(Scatter {
             attenuation: self.albedo.value(ray_in, hit_record),
             ray: Some(scattered),
-            is_specular: true,
             pdf: None,
         })
     }
@@ -236,7 +233,6 @@ impl Material for Dielectric {
         //             ray_in.time(),
         //             ray_in.wavelength,
         //         )),
-        //         is_specular: true,
         //         pdf: None,
         //     })
         // } else {
@@ -249,7 +245,6 @@ impl Material for Dielectric {
         //             ray_in.time(),
         //             ray_in.wavelength,
         //         )),
-        //         is_specular: true,
         //         pdf: None,
         //     })
         // }
@@ -286,7 +281,6 @@ impl Material for Dielectric {
             }
             return Some(Scatter {
                 attenuation: 1.0,
-                is_specular: true,
                 ray: Some(ray_out),
                 pdf: None,
             });
@@ -294,7 +288,6 @@ impl Material for Dielectric {
             let reflected = reflect(ray_in.direction(), hit_record.normal);
             return Some(Scatter {
                 attenuation: 1.0,
-                is_specular: true,
                 ray: Some(Ray::new(
                     hit_record.p,
                     reflected,
@@ -382,7 +375,6 @@ impl<T: Texture> Material for Isotropic<T> {
                 ray_in.time(),
                 ray_in.wavelength,
             )),
-            is_specular: false,
             pdf: None,
         })
     }

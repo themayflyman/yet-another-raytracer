@@ -157,13 +157,16 @@ fn ray_reflectance(
                 let light_pdf = HittablePDF::new(lights.clone(), hit_record.p);
                 MixurePDF::new(Arc::new(light_pdf), scattered.pdf.unwrap())
             };
-            let wl = gen_wavelength(ray_in.wavelength - 10.0, ray_in.wavelength + 10.0);
-            let s = Ray::new(hit_record.p, mixure_pdf.generate(), ray_in.time(), wl);
-            let pdf_val = mixure_pdf.value(s.direction(), wl);
+            let s = Ray::new(hit_record.p, mixure_pdf.generate(), ray_in.time(), ray_in.wavelength);
+            let pdf_val = mixure_pdf.value(s.direction(), ray_in.wavelength);
+            if !pdf_val.is_finite() || pdf_val <= 0.0 {
+                return emitted;
+            }
+
             return scattered.attenuation
-                    * ray_reflectance(&s, world, lights, background_color, depth - 1)
-                    * hit_record.material.scatter_pdf(ray_in, &hit_record, &s)
-                    / pdf_val;
+                * ray_reflectance(&s, world, lights, background_color, depth - 1)
+                * hit_record.material.scatter_pdf(ray_in, &hit_record, &s)
+                / pdf_val;
         } else {
             return emitted;
         }
@@ -418,8 +421,8 @@ fn main() {
             lookfrom = Vec3::new(50.0, 120.0, 300.0);
             lookat = Vec3::new(0.0, 120.0, 0.0);
             aspect_ratio = 1.0;
-            image_width = 1000;
-            image_height = 1000;
+            image_width = 600;
+            image_height = 600;
             background = RGB::new(0.0, 0.0, 0.0);
             samples_per_pixel = 10000;
             aperture = 0.001;
