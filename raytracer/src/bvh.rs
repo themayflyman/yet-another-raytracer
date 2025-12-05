@@ -149,7 +149,7 @@ impl BVHNode {
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         // let mut hit_rec = None;
         // let mut closest_so_far = t_max;
 
@@ -233,7 +233,7 @@ impl<L: Hittable, R: Hittable> BVHNodeStatic<L, R> {
 }
 
 impl<L: Hittable, R: Hittable> Hittable for BVHNodeStatic<L, R> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         match self.aabb_box.hit(ray, t_min, t_max) {
             false => None,
             true => {

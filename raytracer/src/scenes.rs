@@ -9,7 +9,6 @@ use crate::bvh::BVHNode;
 use crate::color::RGB;
 use crate::hittable::{ConstantMedium, FlipFace, HittableList, RotateY, Translate};
 use crate::material::*;
-use crate::qbvh::L1QBVH;
 use crate::rand::Rng;
 use crate::sphere::{MovingSphere, StillSphere};
 use crate::texture::{CheckerTexture, ImageTexture, NoiseTexture, NoiseType, SolidColor};

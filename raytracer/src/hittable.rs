@@ -21,7 +21,7 @@ pub trait Hittable: Send + Sync {
         }
     }
 
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>>;
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AxisAlignedBoundingBox>;
 
@@ -64,8 +64,8 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut hit_rec: Option<HitRecord> = None;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
+        let mut hit_rec: Option<HitRecord<'_>> = None;
         let mut closet_so_far: f64 = t_max;
 
         for sphere in self.objects.iter() {
@@ -134,8 +134,8 @@ impl<T: Hittable> Translate<T> {
 }
 
 impl<T: Hittable> Hittable for Translate<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut hit_rec: Option<HitRecord> = None;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
+        let mut hit_rec: Option<HitRecord<'_>> = None;
         let moved_ray = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time(), ray.wavelength);
 
         if let Some(mut temp_rec) = self.hittable.hit(&moved_ray, t_min, t_max) {
@@ -210,7 +210,7 @@ impl<T: Hittable> RotateY<T> {
 }
 
 impl<T: Hittable> Hittable for RotateY<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let mut origin = ray.origin();
         let mut direction = ray.direction();
 
@@ -267,7 +267,7 @@ impl<TT: Texture, TH: Hittable> ConstantMedium<TH, Isotropic<TT>> {
 }
 
 impl<TH: Hittable, TM: Material> Hittable for ConstantMedium<TH, TM> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let mut rng = rand::thread_rng();
         match self.boundary.hit(ray, -f64::INFINITY, f64::INFINITY) {
             Some(mut rec1) => match self.boundary.hit(ray, rec1.t + 0.0001, f64::INFINITY) {
@@ -331,7 +331,7 @@ impl<T: Hittable> FlipFace<T> {
 }
 
 impl<T: Hittable> Hittable for FlipFace<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         self.hittable.hit(ray, t_min, t_max).map(|rec| HitRecord {
             u: rec.u,
             v: rec.v,

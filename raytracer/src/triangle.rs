@@ -45,7 +45,7 @@ impl<M: Material> Hittable for Triangle<M> {
     }
 
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let edge1 = self.vertices[1] - self.vertices[0];
         let edge2 = self.vertices[2] - self.vertices[0];
 
@@ -175,7 +175,7 @@ impl<M: Material + Clone> TriangleMesh<M> {
 }
 
 impl<M: Material> Hittable for TriangleMesh<M> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         return self.bvh.hit(ray, t_min, t_max);
     }
 

@@ -132,12 +132,12 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
         ))
     }
 
-    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         const MAX_STACK_SIZE: usize = 64;
         let nodes_len = self.nodes.len();
         let mut stack: [u32; MAX_STACK_SIZE] = [nodes_len as u32 - 1; MAX_STACK_SIZE];
         let mut stack_cursor: usize = 0;
-        let mut hit_record: Option<HitRecord> = None;
+        let mut hit_record: Option<HitRecord<'_>> = None;
 
         let rd_is_positive = [
             ray.direction().x() >= 0.0,
@@ -366,12 +366,12 @@ impl<M: Material> Hittable for L4QBVH<M> {
         ))
     }
 
-    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &crate::ray::Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         const MAX_STACK_SIZE: usize = 64;
         let nodes_len = self.nodes.len();
         let mut stack: [u32; MAX_STACK_SIZE] = [nodes_len as u32 - 1; MAX_STACK_SIZE];
         let mut stack_cursor: usize = 0;
-        let mut hit_record: Option<HitRecord> = None;
+        let mut hit_record: Option<HitRecord<'_>> = None;
 
         let rd_is_positive = [
             ray.direction().x() >= 0.0,
@@ -683,6 +683,7 @@ fn split<'a, T: Hittable + ?Sized>(
     )
 }
 
+#[allow(dead_code)]
 #[inline(always)]
 fn hit_trianglex4<'a, M: Material>(
     index: usize,

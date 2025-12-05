@@ -1,6 +1,6 @@
 use rand::{thread_rng, Rng};
 
-use std::convert::{Into, From};
+use std::convert::Into;
 
 use crate::implement_vec3_alike;
 

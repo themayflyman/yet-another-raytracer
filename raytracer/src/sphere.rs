@@ -45,7 +45,7 @@ impl<M: Material> StillSphere<M> {
 }
 
 impl<M: Material> Hittable for StillSphere<M> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let oc: Vec3 = ray.origin() - self.center();
         let a: f64 = ray.direction().length_squared();
         let half_b: f64 = oc.dot(&ray.direction());
@@ -149,7 +149,7 @@ impl<M: Material> MovingSphere<M> {
 }
 
 impl<M: Material> Hittable for MovingSphere<M> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let oc: Vec3 = ray.origin() - self.center(ray.time());
         let a: f64 = ray.direction().length_squared();
         let half_b: f64 = oc.dot(&ray.direction());

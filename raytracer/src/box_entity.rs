@@ -50,8 +50,8 @@ macro_rules! hit {
 
 impl<M: Material + Clone> Hittable for BoxEntity<M> {
     #[allow(unused_assignments)]
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut hit_rec: Option<HitRecord> = None;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
+        let mut hit_rec: Option<HitRecord<'_>> = None;
         let mut closest_so_far: f64 = t_max;
 
         let hitable = &self.sides.0;
