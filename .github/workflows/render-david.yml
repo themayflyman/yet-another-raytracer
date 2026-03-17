@@ -1,0 +1,29 @@
+name: Render David
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install nightly Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Render david scene
+        run: cargo run --release -p raytracer
+
+      - name: Upload david render
+        uses: actions/upload-artifact@v4
+        with:
+          name: david
+          path: output/david.png
+          if-no-files-found: error
