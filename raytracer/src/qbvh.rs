@@ -15,6 +15,21 @@ const ORDER_TABLE: [u32; 8] = [
     0x0123, 0x0132, 0x1023, 0x1032, 0x2301, 0x3201, 0x2310, 0x3210,
 ];
 
+fn push_hit_children<const N: usize>(
+    stack: &mut [u32; N],
+    stack_cursor: &mut usize,
+    children: &u32x4,
+    order: &[u32; 4],
+    hits: &[bool; 4],
+) {
+    for &i in order {
+        if hits[i as usize] {
+            stack[*stack_cursor] = children[i as usize];
+            *stack_cursor += 1;
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct L1QBVH<T: Hittable + ?Sized> {
     hittables: Vec<Arc<T>>,
@@ -213,10 +228,7 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
                     (encoded_order >> 12) & 0xF,
                 ];
                 let hits = t_maxx4.simd_gt(t_minx4).to_array();
-                for &i in &order {
-                    stack[stack_cursor] = node.children[i as usize];
-                    stack_cursor -= hits[i as usize] as usize;
-                }
+                push_hit_children(&mut stack, &mut stack_cursor, &node.children, &order, &hits);
             }
 
             if stack_cursor == 0 {
@@ -518,10 +530,7 @@ impl<M: Material> Hittable for L4QBVH<M> {
                     (encoded_order >> 12) & 0xF,
                 ];
                 let hits = t_maxx4.simd_gt(t_minx4).to_array();
-                for &i in &order {
-                    stack[stack_cursor] = node.children[i as usize];
-                    stack_cursor -= hits[i as usize] as usize;
-                }
+                push_hit_children(&mut stack, &mut stack_cursor, &node.children, &order, &hits);
             }
 
             if stack_cursor == 0 {
@@ -788,6 +797,24 @@ mod tests {
     use rand::prelude::*;
     use std::path::Path;
     use test::{black_box, Bencher};
+
+    #[test]
+    fn push_hit_children_pushes_only_hit_lanes_in_order() {
+        let mut stack = [0_u32; 8];
+        let mut stack_cursor = 0_usize;
+
+        push_hit_children(
+            &mut stack,
+            &mut stack_cursor,
+            &u32x4::from_array([10, 20, 30, 40]),
+            &[2, 0, 3, 1],
+            &[true, false, true, false],
+        );
+
+        assert_eq!(stack_cursor, 2);
+        assert_eq!(stack[0], 30);
+        assert_eq!(stack[1], 10);
+    }
 
     fn load_hittables_from_obj(
         obj_path: &Path,
