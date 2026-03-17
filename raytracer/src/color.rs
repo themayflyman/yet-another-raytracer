@@ -90,10 +90,19 @@ impl RGB {
     }
 
     pub fn gamma_corrected(&self) -> RGB {
+        fn gamma_correct_channel(linear: f64) -> f64 {
+            let linear = linear.max(0.0);
+            if linear <= 0.003_130_8 {
+                12.92 * linear
+            } else {
+                1.055 * f64::powf(linear, 1.0 / 2.4) - 0.055
+            }
+        }
+
         return RGB::new(
-            1.055 * f64::powf(self.r(), 1.0 / 2.4) - 0.055,
-            1.055 * f64::powf(self.g(), 1.0 / 2.4) - 0.055,
-            1.055 * f64::powf(self.b(), 1.0 / 2.4) - 0.055,
+            gamma_correct_channel(self.r()),
+            gamma_correct_channel(self.g()),
+            gamma_correct_channel(self.b()),
         );
     }
 }
@@ -1971,3 +1980,28 @@ static BLUE_SPECTRUM: Spectrum = Spectrum::new([
     0.04405195379111247,
     0.04409963174240773,
 ]);
+
+#[cfg(test)]
+mod tests {
+    use super::RGB;
+
+    #[test]
+    fn gamma_correction_clamps_negative_linear_channels() {
+        let corrected = RGB::new(-0.25, 0.18, -1.0).gamma_corrected();
+
+        assert!(corrected.r().is_finite());
+        assert_eq!(corrected.r(), 0.0);
+        assert!(corrected.g() > 0.0);
+        assert!(corrected.b().is_finite());
+        assert_eq!(corrected.b(), 0.0);
+    }
+
+    #[test]
+    fn gamma_correction_uses_linear_segment_for_small_values() {
+        let corrected = RGB::new(0.001, 0.002, 0.003).gamma_corrected();
+
+        assert!((corrected.r() - 0.01292).abs() < 1e-6);
+        assert!((corrected.g() - 0.02584).abs() < 1e-6);
+        assert!((corrected.b() - 0.03876).abs() < 1e-6);
+    }
+}
