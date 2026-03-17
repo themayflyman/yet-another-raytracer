@@ -212,7 +212,7 @@ impl<T: Hittable + ?Sized> Hittable for L1QBVH<T> {
                     (encoded_order >> 8) & 0xF,
                     (encoded_order >> 12) & 0xF,
                 ];
-                let hits = t_maxx4.simd_gt(t_minx4).to_int();
+                let hits = t_maxx4.simd_gt(t_minx4).to_array();
                 for &i in &order {
                     stack[stack_cursor] = node.children[i as usize];
                     stack_cursor -= hits[i as usize] as usize;
@@ -517,7 +517,7 @@ impl<M: Material> Hittable for L4QBVH<M> {
                     (encoded_order >> 8) & 0xF,
                     (encoded_order >> 12) & 0xF,
                 ];
-                let hits = t_maxx4.simd_gt(t_minx4).to_int();
+                let hits = t_maxx4.simd_gt(t_minx4).to_array();
                 for &i in &order {
                     stack[stack_cursor] = node.children[i as usize];
                     stack_cursor -= hits[i as usize] as usize;
