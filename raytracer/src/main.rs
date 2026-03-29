@@ -49,6 +49,25 @@ struct RenderResult {
     pub col: u32,
 }
 
+const MAX_SAMPLE_LUMINANCE: f64 = 20.0;
+
+fn sanitize_sample_xyz(sample: XYZ) -> XYZ {
+    if !sample.x().is_finite() || !sample.y().is_finite() || !sample.z().is_finite() {
+        return XYZ::default();
+    }
+
+    let luminance = sample.y();
+    if luminance <= 0.0 || luminance <= MAX_SAMPLE_LUMINANCE {
+        return sample;
+    }
+
+    sample * (MAX_SAMPLE_LUMINANCE / luminance)
+}
+
+fn clamp_display_channel(channel: f64) -> u8 {
+    (256.0 * channel.clamp(0.0, 0.999)) as u8
+}
+
 #[allow(dead_code)]
 fn hit_sphere(center: &Vec3, radius: f64, r: &Ray) -> f64 {
     let oc: Vec3 = r.origin() - *center;
@@ -524,17 +543,18 @@ fn main() {
                         let wl = gen_wavelength(MIN_LAMBDA, MAX_LAMBDA);
                         let r: Ray = camera.get_ray(u, v, wl);
 
-                        pixel_color_xyz +=
-                            ray_color(&r, &world, lights.clone(), &background, max_depth);
+                        let sample_xyz =
+                            sanitize_sample_xyz(ray_color(&r, &world, lights.clone(), &background, max_depth));
+                        pixel_color_xyz += sample_xyz;
                     }
 
                     pixel_color_xyz = pixel_color_xyz * (MAX_LAMBDA - MIN_LAMBDA)
                         / (CIE_Y_INTERGAL * samples_per_pixel as f64);
                     let pixel_color_rgb = pixel_color_xyz.into_rgb().gamma_corrected();
                     *pixel = image::Rgba([
-                        (256_f64 * pixel_color_rgb.r()) as u8,
-                        (256_f64 * pixel_color_rgb.g()) as u8,
-                        (256_f64 * pixel_color_rgb.b()) as u8,
+                        clamp_display_channel(pixel_color_rgb.r()),
+                        clamp_display_channel(pixel_color_rgb.g()),
+                        clamp_display_channel(pixel_color_rgb.b()),
                         255,
                     ]);
                 }
@@ -575,4 +595,31 @@ fn main() {
     );
 
     img.save(format!("output/{}", filename)).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{sanitize_sample_xyz, MAX_SAMPLE_LUMINANCE, XYZ};
+
+    #[test]
+    fn sanitize_sample_xyz_drops_non_finite_samples() {
+        assert_eq!(
+            sanitize_sample_xyz(XYZ::new(f64::NAN, 1.0, 1.0)),
+            XYZ::default()
+        );
+        assert_eq!(
+            sanitize_sample_xyz(XYZ::new(f64::INFINITY, 1.0, 1.0)),
+            XYZ::default()
+        );
+    }
+
+    #[test]
+    fn sanitize_sample_xyz_clamps_luminance_but_preserves_chromaticity() {
+        let sample = XYZ::new(40.0, 80.0, 20.0);
+        let clamped = sanitize_sample_xyz(sample);
+
+        assert!((clamped.y() - MAX_SAMPLE_LUMINANCE).abs() < 1e-9);
+        assert!((clamped.x() / clamped.y() - sample.x() / sample.y()).abs() < 1e-9);
+        assert!((clamped.z() / clamped.y() - sample.z() / sample.y()).abs() < 1e-9);
+    }
 }
