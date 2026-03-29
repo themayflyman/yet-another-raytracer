@@ -49,6 +49,11 @@ struct RenderResult {
     pub col: u32,
 }
 
+enum RenderUpdate {
+    Progress(u64),
+    Result(RenderResult),
+}
+
 const MAX_SAMPLE_LUMINANCE: f64 = 20.0;
 
 fn sanitize_sample_xyz(sample: XYZ) -> XYZ {
@@ -476,11 +481,12 @@ fn main() {
     let block_col = 8;
     let block_row = 8;
     let n_jobs = block_col * block_row;
+    let total_pixels = u64::from(image_width) * u64::from(image_height);
     let pool = ThreadPool::new(n_workers);
 
     let l = Arc::new(lights);
 
-    let (tx, rx) = channel();
+    let (tx, rx) = channel::<RenderUpdate>();
     for col in 0..block_col {
         for row in 0..block_row {
             // let scale: f64 = 1.0 / samples_per_pixel as f64;
@@ -495,95 +501,114 @@ fn main() {
             let mut imgbuf = image::RgbaImage::new(crop_width, crop_height);
 
             pool.execute(move || {
-                for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                    // let mut pixel_color = RGB::new(0.0, 0.0, 0.0);
-                    // for _s in 0..samples_per_pixel {
-                    //     let mut rng = rand::thread_rng();
+                for y in 0..crop_height {
+                    for x in 0..crop_width {
+                        let pixel = imgbuf.get_pixel_mut(x, y);
+                        // let mut pixel_color = RGB::new(0.0, 0.0, 0.0);
+                        // for _s in 0..samples_per_pixel {
+                        //     let mut rng = rand::thread_rng();
 
-                    //     let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
-                    //     let u: f64 = target_x / (image_width - 1) as f64;
-                    //     let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
-                    //     let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
-                    //     let r: Ray = camera.get_ray(u, v);
-                    //     pixel_color = pixel_color
-                    //         + ray_color(&r, background, &world, lights.clone(), max_depth);
-                    // }
+                        //     let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                        //     let u: f64 = target_x / (image_width - 1) as f64;
+                        //     let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                        //     let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
+                        //     let r: Ray = camera.get_ray(u, v);
+                        //     pixel_color = pixel_color
+                        //         + ray_color(&r, background, &world, lights.clone(), max_depth);
+                        // }
 
-                    // let r = if pixel_color.r().is_nan() {
-                    //     0.0
-                    // } else {
-                    //     pixel_color.r()
-                    // };
+                        // let r = if pixel_color.r().is_nan() {
+                        //     0.0
+                        // } else {
+                        //     pixel_color.r()
+                        // };
 
-                    // let g = if pixel_color.g().is_nan() {
-                    //     0.0
-                    // } else {
-                    //     pixel_color.g()
-                    // };
+                        // let g = if pixel_color.g().is_nan() {
+                        //     0.0
+                        // } else {
+                        //     pixel_color.g()
+                        // };
 
-                    // let b = if pixel_color.b().is_nan() {
-                    //     0.0
-                    // } else {
-                    //     pixel_color.b()
-                    // };
+                        // let b = if pixel_color.b().is_nan() {
+                        //     0.0
+                        // } else {
+                        //     pixel_color.b()
+                        // };
 
-                    // *pixel = image::Rgba([
-                    //     (256_f64 * clamp((r * scale).sqrt(), 0.0, 0.999)) as u8,
-                    //     (256_f64 * clamp((g * scale).sqrt(), 0.0, 0.999)) as u8,
-                    //     (256_f64 * clamp((b * scale).sqrt(), 0.0, 0.999)) as u8,
-                    //     255,
-                    // ]);
-                    let mut pixel_color_xyz = XYZ::default();
-                    for _ in 0..samples_per_pixel {
-                        let mut rng = rand::thread_rng();
-                        let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
-                        let u: f64 = target_x / (image_width - 1) as f64;
-                        let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
-                        let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
-                        let wl = gen_wavelength(MIN_LAMBDA, MAX_LAMBDA);
-                        let r: Ray = camera.get_ray(u, v, wl);
+                        // *pixel = image::Rgba([
+                        //     (256_f64 * clamp((r * scale).sqrt(), 0.0, 0.999)) as u8,
+                        //     (256_f64 * clamp((g * scale).sqrt(), 0.0, 0.999)) as u8,
+                        //     (256_f64 * clamp((b * scale).sqrt(), 0.0, 0.999)) as u8,
+                        //     255,
+                        // ]);
+                        let mut pixel_color_xyz = XYZ::default();
+                        for _ in 0..samples_per_pixel {
+                            let mut rng = rand::thread_rng();
+                            let target_x: f64 = x as f64 + crop_x as f64 + rng.gen::<f64>();
+                            let u: f64 = target_x / (image_width - 1) as f64;
+                            let target_y: f64 = y as f64 + crop_y as f64 + rng.gen::<f64>();
+                            let v: f64 = 1.0 - target_y / (image_height - 1) as f64;
+                            let wl = gen_wavelength(MIN_LAMBDA, MAX_LAMBDA);
+                            let r: Ray = camera.get_ray(u, v, wl);
 
-                        let sample_xyz =
-                            sanitize_sample_xyz(ray_color(&r, &world, lights.clone(), &background, max_depth));
-                        pixel_color_xyz += sample_xyz;
+                            let sample_xyz = sanitize_sample_xyz(ray_color(
+                                &r,
+                                &world,
+                                lights.clone(),
+                                &background,
+                                max_depth,
+                            ));
+                            pixel_color_xyz += sample_xyz;
+                        }
+
+                        pixel_color_xyz = pixel_color_xyz * (MAX_LAMBDA - MIN_LAMBDA)
+                            / (CIE_Y_INTERGAL * samples_per_pixel as f64);
+                        let pixel_color_rgb = pixel_color_xyz.into_rgb().gamma_corrected();
+                        *pixel = image::Rgba([
+                            clamp_display_channel(pixel_color_rgb.r()),
+                            clamp_display_channel(pixel_color_rgb.g()),
+                            clamp_display_channel(pixel_color_rgb.b()),
+                            255,
+                        ]);
                     }
-
-                    pixel_color_xyz = pixel_color_xyz * (MAX_LAMBDA - MIN_LAMBDA)
-                        / (CIE_Y_INTERGAL * samples_per_pixel as f64);
-                    let pixel_color_rgb = pixel_color_xyz.into_rgb().gamma_corrected();
-                    *pixel = image::Rgba([
-                        clamp_display_channel(pixel_color_rgb.r()),
-                        clamp_display_channel(pixel_color_rgb.g()),
-                        clamp_display_channel(pixel_color_rgb.b()),
-                        255,
-                    ]);
+                    tx.send(RenderUpdate::Progress(u64::from(crop_width)))
+                        .unwrap();
                 }
 
-                tx.send(RenderResult {
+                tx.send(RenderUpdate::Result(RenderResult {
                     img: imgbuf,
                     row,
                     col,
-                })
+                }))
                 .unwrap();
             })
         }
     }
+    drop(tx);
 
-    let bar = ProgressBar::new(n_jobs as u64);
+    let bar = ProgressBar::new(total_pixels);
     bar.set_style(
         ProgressStyle::default_bar()
-            .template("{prefix:>12.cyan.bold} [{bar:57}] {percent}%")
+            .template(
+                "{prefix:>12.cyan.bold} [{elapsed_precise}] [{bar:28.cyan/blue}] \
+                 {percent:>3}% {pos:>7}/{len:7} px {per_sec:>8} ETA {eta_precise}",
+            )
             .progress_chars("=> "),
     );
     bar.set_prefix("Rendering");
-    for (_, result) in rx.iter().enumerate().take(n_jobs as usize) {
-        let result = result as RenderResult;
-        bar.inc(1);
+    let mut completed_jobs = 0;
+    while completed_jobs < n_jobs as usize {
+        match rx.recv().unwrap() {
+            RenderUpdate::Progress(pixels) => bar.inc(pixels),
+            RenderUpdate::Result(result) => {
+                completed_jobs += 1;
 
-        let x1 = image_width * result.col / block_col;
-        let y1 = image_height * result.row / block_row;
-        for (x, y, pixel) in result.img.enumerate_pixels() {
-            img.put_pixel(x1 + x, y1 + y, *pixel);
+                let x1 = image_width * result.col / block_col;
+                let y1 = image_height * result.row / block_row;
+                for (x, y, pixel) in result.img.enumerate_pixels() {
+                    img.put_pixel(x1 + x, y1 + y, *pixel);
+                }
+            }
         }
     }
     bar.finish_and_clear();
