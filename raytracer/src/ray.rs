@@ -5,7 +5,7 @@ pub struct Ray {
     origin: Vec3,    // the ray origin
     direction: Vec3, // the ray direction
     time: f64,
-    pub wavelength: f64
+    pub wavelength: f64,
 }
 
 impl Ray {
@@ -14,7 +14,7 @@ impl Ray {
             origin,
             direction,
             time,
-            wavelength
+            wavelength,
         }
     }
 

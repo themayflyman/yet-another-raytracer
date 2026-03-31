@@ -19,7 +19,14 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Render david scene
-        run: cargo run --release -p raytracer
+        run: >
+          cargo run --release -p raytracer --
+          --scene david
+          --output output/david.png
+          --width 240
+          --samples 32
+          --max-depth 16
+          --workers 8
 
       - name: Upload david render
         uses: actions/upload-artifact@v4

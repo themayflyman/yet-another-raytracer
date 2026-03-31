@@ -174,7 +174,7 @@ impl Hittable for BVHNode {
             t_max,
         );
 
-        match(hit_left, hit_right) {
+        match (hit_left, hit_right) {
             (None, None) => None,
             (Some(_t), None) => left.hit(ray, t_min, t_max),
             (None, Some(_t)) => right.hit(ray, t_min, t_max),
@@ -183,26 +183,34 @@ impl Hittable for BVHNode {
                 let mut closest_so_far = t_max;
 
                 if t_left < t_right {
-                  if let Some(hit_left) = self.left.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
-                      closest_so_far = hit_left.t;
-                      hit_rec = Some(hit_left);
-                  }
+                    if let Some(hit_left) =
+                        self.left.as_ref().unwrap().hit(ray, t_min, closest_so_far)
+                    {
+                        closest_so_far = hit_left.t;
+                        hit_rec = Some(hit_left);
+                    }
 
-                  if let Some(hit_right) = self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
-                      hit_rec = Some(hit_right);
-                  }
+                    if let Some(hit_right) =
+                        self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far)
+                    {
+                        hit_rec = Some(hit_right);
+                    }
                 } else {
-                  if let Some(hit_right) = self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
-                      closest_so_far = hit_right.t;
-                      hit_rec = Some(hit_right);
-                  }
+                    if let Some(hit_right) =
+                        self.right.as_ref().unwrap().hit(ray, t_min, closest_so_far)
+                    {
+                        closest_so_far = hit_right.t;
+                        hit_rec = Some(hit_right);
+                    }
 
-                  if let Some(hit_left) = self.left.as_ref().unwrap().hit(ray, t_min, closest_so_far) {
-                      hit_rec = Some(hit_left);
-                  }
+                    if let Some(hit_left) =
+                        self.left.as_ref().unwrap().hit(ray, t_min, closest_so_far)
+                    {
+                        hit_rec = Some(hit_left);
+                    }
                 }
                 hit_rec
-            },
+            }
         }
     }
 

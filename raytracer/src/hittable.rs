@@ -136,7 +136,12 @@ impl<T: Hittable> Translate<T> {
 impl<T: Hittable> Hittable for Translate<T> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord<'_>> {
         let mut hit_rec: Option<HitRecord<'_>> = None;
-        let moved_ray = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time(), ray.wavelength);
+        let moved_ray = Ray::new(
+            ray.origin() - self.offset,
+            ray.direction(),
+            ray.time(),
+            ray.wavelength,
+        );
 
         if let Some(mut temp_rec) = self.hittable.hit(&moved_ray, t_min, t_max) {
             temp_rec.p = temp_rec.p + self.offset;

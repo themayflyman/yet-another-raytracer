@@ -26,11 +26,7 @@ fn random_in_unit_disk() -> Vec3 {
     let mut rng = rand::thread_rng();
     let mut p: Vec3;
     while {
-        p = Vec3::new(
-            rng.gen_range(-1.0..1.0),
-            rng.gen_range(-1.0..1.0),
-            0.0,
-        );
+        p = Vec3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
         p.length_squared() >= 1.0
     } {}
     p
@@ -93,7 +89,7 @@ impl Camera {
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
             rng.gen_range(self.time0..self.time1),
-            wl
+            wl,
         )
     }
 }

@@ -51,37 +51,101 @@ impl AxisAlignedBoundingBox {
         let inv_d: f64x4 = f64x4::splat(1.0) / ray_direction;
         let left_t_min = {
             let left_min = f64x4::from([
-                if inv_d[0] > 0.0 { self.min.x() } else { self.max.x() },
-                if inv_d[1] > 0.0 { self.min.y() } else { self.max.y() },
-                if inv_d[2] > 0.0 { self.min.z() } else { self.max.z() },
-                if inv_d[2] > 0.0 { self.min.z() } else { self.max.z() },
+                if inv_d[0] > 0.0 {
+                    self.min.x()
+                } else {
+                    self.max.x()
+                },
+                if inv_d[1] > 0.0 {
+                    self.min.y()
+                } else {
+                    self.max.y()
+                },
+                if inv_d[2] > 0.0 {
+                    self.min.z()
+                } else {
+                    self.max.z()
+                },
+                if inv_d[2] > 0.0 {
+                    self.min.z()
+                } else {
+                    self.max.z()
+                },
             ]);
             ((left_min - ray_origin) * inv_d).reduce_max()
         };
         let left_t_max = {
             let left_max = f64x4::from([
-                if inv_d[0] > 0.0 { self.max.x() } else { self.min.x() },
-                if inv_d[1] > 0.0 { self.max.y() } else { self.min.y() },
-                if inv_d[2] > 0.0 { self.max.z() } else { self.min.z() },
-                if inv_d[2] > 0.0 { self.max.z() } else { self.min.z() },
+                if inv_d[0] > 0.0 {
+                    self.max.x()
+                } else {
+                    self.min.x()
+                },
+                if inv_d[1] > 0.0 {
+                    self.max.y()
+                } else {
+                    self.min.y()
+                },
+                if inv_d[2] > 0.0 {
+                    self.max.z()
+                } else {
+                    self.min.z()
+                },
+                if inv_d[2] > 0.0 {
+                    self.max.z()
+                } else {
+                    self.min.z()
+                },
             ]);
             ((left_max - ray_origin) * inv_d).reduce_min()
         };
         let right_t_min = {
             let right_min = f64x4::from([
-                if inv_d[0] > 0.0 { right.min.x() } else { right.max.x() },
-                if inv_d[1] > 0.0 { right.min.y() } else { right.max.y() },
-                if inv_d[2] > 0.0 { right.min.z() } else { right.max.z() },
-                if inv_d[2] > 0.0 { right.min.z() } else { right.max.z() },
+                if inv_d[0] > 0.0 {
+                    right.min.x()
+                } else {
+                    right.max.x()
+                },
+                if inv_d[1] > 0.0 {
+                    right.min.y()
+                } else {
+                    right.max.y()
+                },
+                if inv_d[2] > 0.0 {
+                    right.min.z()
+                } else {
+                    right.max.z()
+                },
+                if inv_d[2] > 0.0 {
+                    right.min.z()
+                } else {
+                    right.max.z()
+                },
             ]);
             ((right_min - ray_origin) * inv_d).reduce_max()
         };
         let right_t_max = {
             let right_max = f64x4::from([
-                if inv_d[0] > 0.0 { right.max.x() } else { right.min.x() },
-                if inv_d[1] > 0.0 { right.max.y() } else { right.min.y() },
-                if inv_d[2] > 0.0 { right.max.z() } else { right.min.z() },
-                if inv_d[2] > 0.0 { right.max.z() } else { right.min.z() },
+                if inv_d[0] > 0.0 {
+                    right.max.x()
+                } else {
+                    right.min.x()
+                },
+                if inv_d[1] > 0.0 {
+                    right.max.y()
+                } else {
+                    right.min.y()
+                },
+                if inv_d[2] > 0.0 {
+                    right.max.z()
+                } else {
+                    right.min.z()
+                },
+                if inv_d[2] > 0.0 {
+                    right.max.z()
+                } else {
+                    right.min.z()
+                },
             ]);
             ((right_max - ray_origin) * inv_d).reduce_min()
         };

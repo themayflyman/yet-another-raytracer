@@ -255,27 +255,27 @@ impl Material for Dielectric {
             + self.b2 * wl_pow2 / (wl_pow2 - self.c2)
             + self.b3 * wl_pow2 / (wl_pow2 - self.c3);
         let refractive_index = refractive_index_squared.sqrt();
-        let (outward_normal, ni_over_nt, cosine) = if ray_in.direction().dot(&hit_record.normal)
-            > 0.0
-        {
-            (
-                -hit_record.normal,
-                refractive_index,
-                refractive_index * ray_in.direction().dot(&hit_record.normal) / ray_in.direction().length(),
-            )
-        } else {
-            (
-                hit_record.normal,
-                refractive_index.recip(),
-                -ray_in.direction().dot(&hit_record.normal) / ray_in.direction().length(),
-            )
-        };
+        let (outward_normal, ni_over_nt, cosine) =
+            if ray_in.direction().dot(&hit_record.normal) > 0.0 {
+                (
+                    -hit_record.normal,
+                    refractive_index,
+                    refractive_index * ray_in.direction().dot(&hit_record.normal)
+                        / ray_in.direction().length(),
+                )
+            } else {
+                (
+                    hit_record.normal,
+                    refractive_index.recip(),
+                    -ray_in.direction().dot(&hit_record.normal) / ray_in.direction().length(),
+                )
+            };
 
         if let Some(refracted) = refract(ray_in.direction(), outward_normal, ni_over_nt) {
             let ray_out: Ray;
             if random::<f64>() < schlick(cosine, refractive_index) {
                 let reflected = reflect(ray_in.direction(), hit_record.normal);
-                ray_out = Ray::new(hit_record.p, reflected,  ray_in.time(), ray_in.wavelength);
+                ray_out = Ray::new(hit_record.p, reflected, ray_in.time(), ray_in.wavelength);
             } else {
                 ray_out = Ray::new(hit_record.p, refracted, ray_in.time(), ray_in.wavelength);
             }

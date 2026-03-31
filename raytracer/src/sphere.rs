@@ -93,7 +93,11 @@ impl<M: Material> Hittable for StillSphere<M> {
     }
 
     fn pdf_value(&self, origin: Vec3, direction: Vec3, wavelength: f64) -> f64 {
-        if let Some(_rec) = self.hit(&Ray::new(origin, direction, 0.0, wavelength), 0.001, f64::INFINITY) {
+        if let Some(_rec) = self.hit(
+            &Ray::new(origin, direction, 0.0, wavelength),
+            0.001,
+            f64::INFINITY,
+        ) {
             let cos_theta_max = (1.0
                 - self.radius() * self.radius() / (self.center() - origin).length_squared())
             .sqrt();

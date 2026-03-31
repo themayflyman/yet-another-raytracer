@@ -5,6 +5,7 @@ authors = ["XuZiWei <xuziwei100@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+clap = { version = "4.5.20", features = ["derive"] }
 tobj = "4.0.2"
 rand = "0.8.5"
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
