@@ -593,6 +593,7 @@ fn main() {
                 "{prefix:>12.cyan.bold} [{elapsed_precise}] [{bar:28.cyan/blue}] \
                  {percent:>3}% {pos:>7}/{len:7} px {per_sec:>8} ETA {eta_precise}",
             )
+            .expect("progress bar template should be valid")
             .progress_chars("=> "),
     );
     bar.set_prefix("Rendering");
